@@ -121,7 +121,7 @@ const isNotFoundNumber = computed(() => {
         <h2 class="section-title">原始邏輯數值 (Zero-sum Base) - [{{ play.category }}] {{ play.playType }}</h2>
         <div class="data-grid">
           <div class="data-item">
-            <label>總個數 (Total)</label>
+            <label>總次數 (Total)</label>
             <span class="num">{{ play?.baseData?.totalCount?.toLocaleString() || '-' }}</span>
           </div>
           <div class="data-item">
@@ -178,11 +178,11 @@ const isNotFoundNumber = computed(() => {
             <template v-if="!isNotFoundNumber">
             <div class="form-group flex-group">
               <label>給定賠率</label>
-              <input type="number" v-model.number="costA.givenOdds" step="0.1">
+              <input type="number" v-model.number="costA.givenOdds" step="0.1" class="border-odds">
             </div>
             <div class="form-group flex-group" v-if="costA.subGivenOdds !== null">
               <label>副獎給定賠率</label>
-              <input type="number" v-model.number="costA.subGivenOdds" step="0.1">
+              <input type="number" v-model.number="costA.subGivenOdds" step="0.1" class="border-odds">
             </div>
             
             <div class="form-group flex-group">
@@ -190,11 +190,11 @@ const isNotFoundNumber = computed(() => {
               <div class="split-inputs">
                 <div>
                   <small>給定退水 (Rebate)</small>
-                  <input type="number" v-model.number="costA.rebate" step="0.1">
+                  <input type="number" v-model.number="costA.rebate" step="0.1" class="border-cost">
                 </div>
                 <div>
                   <small>給定成本 (Cost)</small>
-                  <input type="number" v-model.number="costA.cost" step="0.1">
+                  <input type="number" v-model.number="costA.cost" step="0.1" class="border-cost">
                 </div>
               </div>
             </div>
@@ -223,11 +223,11 @@ const isNotFoundNumber = computed(() => {
         <div class="market-panel glass-panel slave-panel master-b-panel" v-if="!isNotFoundNumber">
           <div class="panel-header">
             <div class="header-top">
-              <h3>成本 B 盤 <span class="badge badge-slave">進階干預</span></h3>
+              <h3>成本 B 盤 <span class="badge badge-slave">連動調盤</span></h3>
               <div class="top-right-input">
                 <label>疊加設定</label>
                 <div class="input-suffix small-input">
-                  <input type="number" v-model.number="costB.additionalProfit" step="0.1">
+                  <input type="number" v-model.number="costB.additionalProfit" step="0.1" class="border-odds">
                   <span>%</span>
                 </div>
               </div>
@@ -238,23 +238,23 @@ const isNotFoundNumber = computed(() => {
           <div class="form-section">
             <div class="form-group flex-group">
               <label>自訂高賠率目標</label>
-              <input type="number" v-model.number="costB.givenOdds" step="0.1" class="border-accent">
+              <input type="number" v-model.number="costB.givenOdds" step="0.1" class="border-odds">
             </div>
             <div class="form-group flex-group" v-if="costB.subGivenOdds !== null">
               <label>自訂副獎賠率</label>
-              <input type="number" v-model.number="costB.subGivenOdds" step="0.1" class="border-accent">
+              <input type="number" v-model.number="costB.subGivenOdds" step="0.1" class="border-odds">
             </div>
             
             <div class="form-group flex-group mt-3">
               <label>反算與手動退水覆蓋</label>
               <div class="split-inputs">
                 <div>
-                  <small>給定退水 (可手改)</small>
-                  <input type="number" v-model.number="costB.rebate" step="0.1" class="border-warning">
+                  <small>給定退水</small>
+                  <input type="number" v-model.number="costB.rebate" step="0.1" class="border-cost">
                 </div>
                 <div>
                   <small>給定成本</small>
-                  <input type="number" v-model.number="costB.cost" step="0.1">
+                  <input type="number" v-model.number="costB.cost" step="0.1" class="border-cost">
                 </div>
               </div>
             </div>
@@ -278,7 +278,7 @@ const isNotFoundNumber = computed(() => {
         <div class="market-panel glass-panel slave-panel" v-if="!isNotFoundNumber">
           <div class="panel-header">
             <div class="header-top">
-              <h3>賠率 A 盤 <span class="badge badge-slave">連動派彩</span></h3>
+              <h3>賠率 A 盤 <span class="badge badge-slave">連動調盤</span></h3>
               <!-- (已依要求移除利潤疊加設定) -->
             </div>
             <p class="desc">現金玩法。隨 A 盤利潤推算派彩賠率。</p>
@@ -299,11 +299,11 @@ const isNotFoundNumber = computed(() => {
 
           <div class="result-section flex-grow-end">
             <div class="data-row separator">
-              <label>真理・主獎理論賠率</label>
+              <label>主獎理論賠率</label>
               <span class="num">{{ fmtNum(play?.baseData?.theoreticalOdds, 4) }}</span>
             </div>
             <div class="data-row" v-if="play?.baseData?.subTheoreticalOdds">
-              <label>真理・副獎理論賠率</label>
+              <label>副獎理論賠率</label>
               <span class="num">{{ fmtNum(play?.baseData?.subTheoreticalOdds, 4) }}</span>
             </div>
             <div class="data-row highlight-row mt-2">
@@ -319,11 +319,11 @@ const isNotFoundNumber = computed(() => {
         <div class="market-panel glass-panel slave-panel" v-if="!isNotFoundNumber">
           <div class="panel-header">
             <div class="header-top">
-              <h3>賠率 B 盤 <span class="badge badge-slave">連動派彩</span></h3>
+              <h3>賠率 B 盤 <span class="badge badge-slave">連動調盤</span></h3>
               <div class="top-right-input">
                 <label>疊加設定</label>
                 <div class="input-suffix small-input">
-                  <input type="number" v-model.number="oddsB.additionalProfit" step="0.1">
+                  <input type="number" v-model.number="oddsB.additionalProfit" step="0.1" class="border-odds">
                   <span>%</span>
                 </div>
               </div>
@@ -346,11 +346,11 @@ const isNotFoundNumber = computed(() => {
 
           <div class="result-section flex-grow-end">
             <div class="data-row separator">
-              <label>真理・主獎理論賠率</label>
+              <label>主獎理論賠率</label>
               <span class="num">{{ fmtNum(play?.baseData?.theoreticalOdds, 4) }}</span>
             </div>
             <div class="data-row" v-if="play?.baseData?.subTheoreticalOdds">
-              <label>真理・副獎理論賠率</label>
+              <label>副獎理論賠率</label>
               <span class="num">{{ fmtNum(play?.baseData?.subTheoreticalOdds, 4) }}</span>
             </div>
             <div class="data-row highlight-row mt-2">
@@ -550,8 +550,8 @@ const isNotFoundNumber = computed(() => {
   background: rgba(255, 255, 255, 0.06);
   border-color: rgba(251, 191, 36, 0.3);
 }
-.border-accent { border: 1px solid var(--accent-color) !important;}
-.border-warning { border: 1px dashed var(--warning-color) !important;}
+.border-odds { border: 1px dashed var(--warning-color) !important; background: rgba(251, 191, 36, 0.05) !important; }
+.border-cost { border: 1px dashed var(--accent-color) !important; background: rgba(56, 189, 248, 0.05) !important; }
 
 .split-inputs {
   display: flex;

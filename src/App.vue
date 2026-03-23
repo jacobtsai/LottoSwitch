@@ -345,11 +345,11 @@ const isNotFoundNumber = computed(() => {
           <div class="result-section flex-grow-end">
             <div class="data-row separator">
               <label>真理・主獎理論賠率</label>
-              <span class="num">{{ fmtNum(baseData.theoreticalOdds, 4) }}</span>
+              <span class="num">{{ fmtNum(play?.baseData?.theoreticalOdds, 4) }}</span>
             </div>
-            <div class="data-row" v-if="baseData.subTheoreticalOdds">
+            <div class="data-row" v-if="play?.baseData?.subTheoreticalOdds">
               <label>真理・副獎理論賠率</label>
-              <span class="num">{{ fmtNum(baseData.subTheoreticalOdds, 4) }}</span>
+              <span class="num">{{ fmtNum(play?.baseData?.subTheoreticalOdds, 4) }}</span>
             </div>
             <div class="data-row highlight-row mt-2">
               <label>當前利潤</label>

@@ -359,6 +359,8 @@ const isNotFoundNumber = computed(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+  position: relative;
+  z-index: 100;
 }
 
 .logo {
@@ -610,6 +612,9 @@ const isNotFoundNumber = computed(() => {
   --ms-ring-color: rgba(56, 189, 248, 0.3);
   --ms-radius: 6px;
   height: 40px;
+}
+:deep(.multiselect-dropdown) {
+  z-index: 9999 !important;
 }
 :deep(.multiselect-group-label) {
   background: #0f172a;

@@ -30,9 +30,15 @@ async function main() {
       // Data starts roughly at row 3 (index 2). We look for rows that have '玩法' in column 2, but exclude the header itself.
       const dataRows = parsed.data.slice(2).filter(row => row[2] && row[2].trim() !== '' && row[2].trim() !== '玩法');
       
+      let currentCategory = '';
       result[game.name] = dataRows.map(row => {
+        const rawCat = row[1]?.trim();
+        if (rawCat) {
+          currentCategory = rawCat;
+        }
+        
         return {
-          category: row[1]?.trim() || '',
+          category: currentCategory,
           playType: row[2]?.trim() || '',
           baseData: {
             totalCount: parseInt(row[3]?.replace(/,/g, '') || '0', 10),

@@ -208,7 +208,7 @@ const isNotFoundNumber = computed(() => {
             </div>
             <div class="result-row separator">
               <label>理論成本 (Expected)</label>
-              <span class="num">{{ fmtNum(theoreticalCostA) }}</span>
+              <span class="num">{{ fmtNum(theoreticalCostA, 6) }}</span>
             </div>
             <div class="result-row highlight-row">
               <label>當前利潤</label>
@@ -263,7 +263,7 @@ const isNotFoundNumber = computed(() => {
           <div class="result-section flex-grow-end">
              <div class="data-row separator">
                 <label>目標理論成本</label>
-                <span class="num">{{ fmtNum(theoreticalCostB) }}</span>
+                <span class="num">{{ fmtNum(theoreticalCostB, 6) }}</span>
               </div>
               <div class="data-row highlight-row">
                  <label>當前利潤</label>
@@ -300,11 +300,11 @@ const isNotFoundNumber = computed(() => {
           <div class="result-section flex-grow-end">
             <div class="data-row separator">
               <label>主獎理論賠率</label>
-              <span class="num">{{ fmtNum(play?.baseData?.theoreticalOdds, 4) }}</span>
+              <span class="num">{{ fmtNum(play?.baseData?.theoreticalOdds, 6) }}</span>
             </div>
             <div class="data-row" v-if="play?.baseData?.subTheoreticalOdds">
               <label>副獎理論賠率</label>
-              <span class="num">{{ fmtNum(play?.baseData?.subTheoreticalOdds, 4) }}</span>
+              <span class="num">{{ fmtNum(play?.baseData?.subTheoreticalOdds, 6) }}</span>
             </div>
             <div class="data-row highlight-row mt-2">
               <label>當前利潤</label>
@@ -347,11 +347,11 @@ const isNotFoundNumber = computed(() => {
           <div class="result-section flex-grow-end">
             <div class="data-row separator">
               <label>主獎理論賠率</label>
-              <span class="num">{{ fmtNum(play?.baseData?.theoreticalOdds, 4) }}</span>
+              <span class="num">{{ fmtNum(play?.baseData?.theoreticalOdds, 6) }}</span>
             </div>
             <div class="data-row" v-if="play?.baseData?.subTheoreticalOdds">
               <label>副獎理論賠率</label>
-              <span class="num">{{ fmtNum(play?.baseData?.subTheoreticalOdds, 4) }}</span>
+              <span class="num">{{ fmtNum(play?.baseData?.subTheoreticalOdds, 6) }}</span>
             </div>
             <div class="data-row highlight-row mt-2">
               <label>當前利潤</label>

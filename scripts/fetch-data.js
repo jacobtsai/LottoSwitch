@@ -30,6 +30,17 @@ async function main() {
       // Data starts roughly at row 3 (index 2). We look for rows that have '玩法' in column 2, but exclude the header itself.
       const dataRows = parsed.data.slice(2).filter(row => row[2] && row[2].trim() !== '' && row[2].trim() !== '玩法');
       
+      const parseSafeFloat = (val) => {
+        if (!val || typeof val !== 'string') return null;
+        const parsed = parseFloat(val.replace(/,/g, ''));
+        return isNaN(parsed) ? null : parsed;
+      }
+      const parseSafePercent = (val) => {
+        if (!val || typeof val !== 'string') return 0;
+        const parsed = parseFloat(val.replace(/,/g, '').replace(/%/g, ''));
+        return isNaN(parsed) ? 0 : parsed / 100;
+      }
+
       let currentCategory = '';
       result[game.name] = dataRows.map(row => {
         const rawCat = row[1]?.trim();
@@ -43,43 +54,43 @@ async function main() {
           baseData: {
             totalCount: parseInt(row[3]?.replace(/,/g, '') || '0', 10),
             winCount: parseInt(row[4]?.replace(/,/g, '') || '0', 10),
-            prob: parseFloat(row[5]) || 0,
-            theoreticalOdds: parseFloat(row[6]) || 0,
+            prob: parseSafeFloat(row[5]) || 0,
+            theoreticalOdds: parseSafeFloat(row[6]) || 0,
             subWinCount: row[7] ? parseInt(row[7].replace(/,/g, '')) : null,
-            subProb: row[8] ? parseFloat(row[8]) : null,
-            subTheoreticalOdds: row[9] ? parseFloat(row[9]) : null
+            subProb: parseSafeFloat(row[8]),
+            subTheoreticalOdds: parseSafeFloat(row[9])
           },
           costA: {
-            givenOdds: parseFloat(row[21]) || 0,
-            subGivenOdds: row[22] ? parseFloat(row[22]) : null,
-            baseCost: parseFloat(row[25]) || 0,
-            baseRebate: parseFloat(row[24]) || 0,
-            baseProfitStr: row[27], // e.g. "0.1964%"
-            baseProfit: parseFloat(row[27]) / 100 || 0,
-            additionalProfit: 0 // Will be adjustable in UI
+            givenOdds: parseSafeFloat(row[21]) || 0,
+            subGivenOdds: parseSafeFloat(row[22]),
+            baseCost: parseSafeFloat(row[25]) || 0,
+            baseRebate: parseSafeFloat(row[24]) || 0,
+            baseProfitStr: row[27], 
+            baseProfit: parseSafePercent(row[27]),
+            additionalProfit: 0 
           },
           costB: {
-            givenOdds: parseFloat(row[29]) || 0,
-            subGivenOdds: row[30] ? parseFloat(row[30]) : null,
-            baseCost: parseFloat(row[33]) || 0,
-            baseRebate: parseFloat(row[32]) || 0,
-            baseProfitStr: row[34], // same target profit logic
-            baseProfit: parseFloat(row[34]) / 100 || 0,
-            additionalProfit: parseFloat(row[35]) / 100 || 0 // e.g. AI2
+            givenOdds: parseSafeFloat(row[29]) || 0,
+            subGivenOdds: parseSafeFloat(row[30]),
+            baseCost: parseSafeFloat(row[33]) || 0,
+            baseRebate: parseSafeFloat(row[32]) || 0,
+            baseProfitStr: row[34], 
+            baseProfit: parseSafePercent(row[34]),
+            additionalProfit: parseSafePercent(row[35]) 
           },
           oddsA: {
-            givenOdds: parseFloat(row[36]) || 0,
-            subGivenOdds: row[37] ? parseFloat(row[37]) : null,
+            givenOdds: parseSafeFloat(row[36]) || 0,
+            subGivenOdds: parseSafeFloat(row[37]),
             baseProfitStr: row[38],
-            baseProfit: parseFloat(row[38]) / 100 || 0,
-            additionalProfit: parseFloat(row[39]) / 100 || 0 
+            baseProfit: parseSafePercent(row[38]),
+            additionalProfit: parseSafePercent(row[39]) 
           },
           oddsB: {
-            givenOdds: parseFloat(row[40]) || 0,
-            subGivenOdds: row[41] ? parseFloat(row[41]) : null,
+            givenOdds: parseSafeFloat(row[40]) || 0,
+            subGivenOdds: parseSafeFloat(row[41]),
             baseProfitStr: row[42],
-            baseProfit: parseFloat(row[42]) / 100 || 0,
-            additionalProfit: parseFloat(row[43]) / 100 || 0
+            baseProfit: parseSafePercent(row[42]),
+            additionalProfit: parseSafePercent(row[43])
           }
         };
       });

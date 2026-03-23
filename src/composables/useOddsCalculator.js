@@ -53,8 +53,8 @@ export function useOddsCalculator(initialPlay) {
   // 雙向綁定的防無限迴圈鎖
   let isSyncingB = false
 
-  // 當 A 盤獲利改變或 B 盤賠率改變，B 盤主動反推成本並鎖死利潤
-  watch([actualProfitA, () => costB.value.givenOdds, () => costB.value.subGivenOdds, () => costB.value.additionalProfit], () => {
+  // 1. MASTER 驅動更新 (A盤利潤變動，或使用者手動調整「利潤疊加」時)：鎖死利潤，全自動配合新算式去更改 B 盤的退水/成本
+  watch([actualProfitA, () => costB.value.additionalProfit], () => {
     if (isSyncingB) return
     isSyncingB = true
     
@@ -65,14 +65,15 @@ export function useOddsCalculator(initialPlay) {
     costB.value.cost = +(newCost).toFixed(4)
     costB.value.rebate = +(100 - newCost).toFixed(4)
     
-    nextTick(() => { isSyncingB = false })
+    setTimeout(() => { isSyncingB = false }, 0)
   })
 
-  // 當使用者手動強制干預 B 盤退水時，B 盤放棄原本的鎖定，轉而把差額寫回「利潤疊加」
-  watch([() => costB.value.rebate, () => costB.value.cost], ([newRebate, newCost], [oldR, oldC]) => {
+  // 2. 使用者手動干預 B 盤參數 (賠率 / 退水 / 成本)：打破利潤鎖定，允許當前利潤產生變化，並反推「利潤疊加」來吸收差異
+  watch([() => costB.value.givenOdds, () => costB.value.subGivenOdds, () => costB.value.rebate, () => costB.value.cost], ([newOdds, newSubOdds, newRebate, newCost], [oldOdds, oldSubOdds, oldR, oldC]) => {
     if (isSyncingB) return
     isSyncingB = true
 
+    // 若使用者動的是【退水】或【成本】，要先互相連動
     if (newRebate !== oldR) {
       costB.value.cost = +(100 - newRebate).toFixed(4)
       newCost = costB.value.cost
@@ -80,13 +81,18 @@ export function useOddsCalculator(initialPlay) {
       costB.value.rebate = +(100 - newCost).toFixed(4)
     }
 
+    // 重算干預後的真實利潤
     const theoB = calcTheoCost(costB.value.givenOdds, costB.value.subGivenOdds)
     const currentActualProfitB = newCost - theoB
     
-    // Reverse calculate additionalProfit needed to justify this override
-    costB.value.additionalProfit = +((currentActualProfitB - actualProfitA.value) / 100).toFixed(6)
+    // 反向倒推出這個操作製造了多少利潤差額，寫入 additionalProfit 吸收
+    const newAddProfit = (currentActualProfitB - actualProfitA.value) / 100
+    // 預防浮點數無限連鎖更新
+    if (Math.abs((costB.value.additionalProfit || 0) - newAddProfit) > 0.000001) {
+      costB.value.additionalProfit = +(newAddProfit).toFixed(6)
+    }
     
-    nextTick(() => { isSyncingB = false })
+    setTimeout(() => { isSyncingB = false }, 0)
   })
   
   const computedProfitB = computed(() => costB.value.cost - theoreticalCostB.value)

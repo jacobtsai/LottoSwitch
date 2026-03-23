@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@vueform/multiselect": "^2.6.11",
+    "decimal.js": "^10.6.0",
     "papaparse": "^5.5.3",
     "vue": "^3.5.30"
   },

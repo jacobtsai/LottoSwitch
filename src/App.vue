@@ -115,20 +115,25 @@ const isNotFoundNumber = computed(() => {
     </header>
 
     <main class="main-content">
-      <div v-if="requiredCatForNumber" class="glass-panel manual-num-panel mb-4">
-         <h2>{{ requiredCatForNumber }} - 請輸入欲查詢號碼</h2>
-         <input type="text" v-model="manualNumberInput" class="large-input" placeholder="例如: 01, 88...">
-         <p v-if="isNotFoundNumber" class="error-msg">⚠️ 查無該號碼資料，請輸入有效號碼，或等待輸入完成。</p>
-         <p v-else-if="manualNumberInput" class="success-msg">✅ 載入成功！目前顯示號碼 {{ manualNumberInput }} 數據</p>
-      </div>
+      <!-- (號碼輸入區已移至成本 A 盤內) -->
 
       <section class="base-data glass-panel" v-if="play && !isNotFoundNumber">
         <h2 class="section-title">原始邏輯數值 (Zero-sum Base) - [{{ play.category }}] {{ play.playType }}</h2>
         <div class="data-grid">
           <div class="data-item">
-            <label>資料筆數</label>
+            <label>總個數 (Total)</label>
             <span class="num">{{ play?.baseData?.totalCount?.toLocaleString() || '-' }}</span>
           </div>
+          <div class="data-item">
+            <label>主獎次數 (Win)</label>
+            <span class="num">{{ play?.baseData?.winCount?.toLocaleString() || '-' }}</span>
+          </div>
+          <template v-if="play?.baseData?.subWinCount">
+            <div class="data-item">
+              <label>副獎次數 (Sub)</label>
+              <span class="num">{{ play?.baseData?.subWinCount?.toLocaleString() || '-' }}</span>
+            </div>
+          </template>
           <div class="data-item">
             <label>主獎機率</label>
             <span class="num highlight">{{ fmtPerc(play.baseData.prob) }}</span>
@@ -161,6 +166,15 @@ const isNotFoundNumber = computed(() => {
           </div>
           
           <div class="form-section">
+            <transition name="fade-slide">
+              <div v-if="requiredCatForNumber" class="form-group mb-4 p-3" style="background: rgba(56, 189, 248, 0.1); border: 1px solid var(--accent-color); border-radius: 8px; text-align: center;">
+                 <label class="warning mb-2" style="display:block; color: var(--accent-color) !important;">{{ requiredCatForNumber }} - 手動綁定號碼：</label>
+                 <input type="text" v-model="manualNumberInput" style="font-size: 1.25rem; font-weight: bold; text-align: center; width: 100%; padding: 0.5rem; border-radius: 6px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1);" placeholder="例如: 01, 88...">
+                 <p v-if="isNotFoundNumber" class="error-msg" style="margin-top: 0.5rem; font-size:0.75rem;">⚠️ 查無此號碼</p>
+                 <p v-else-if="manualNumberInput" class="success-msg" style="margin-top: 0.5rem; font-size:0.75rem;">✅ 已載入</p>
+              </div>
+            </transition>
+
             <div class="form-group flex-group">
               <label>給定賠率</label>
               <input type="number" v-model.number="costA.givenOdds" step="0.1">
@@ -263,13 +277,7 @@ const isNotFoundNumber = computed(() => {
           <div class="panel-header">
             <div class="header-top">
               <h3>賠率 A 盤 <span class="badge badge-slave">連動派彩</span></h3>
-              <div class="top-right-input">
-                <label>疊加設定</label>
-                <div class="input-suffix small-input">
-                  <input type="number" v-model.number="oddsA.additionalProfit" step="0.1">
-                  <span>%</span>
-                </div>
-              </div>
+              <!-- (已依要求移除利潤疊加設定) -->
             </div>
             <p class="desc">現金玩法。隨 A 盤利潤推算派彩賠率。</p>
           </div>
@@ -288,7 +296,15 @@ const isNotFoundNumber = computed(() => {
           </div>
 
           <div class="result-section flex-grow-end">
-            <div class="data-row highlight-row">
+            <div class="data-row separator">
+              <label>真理・主獎理論賠率</label>
+              <span class="num">{{ fmtNum(baseData.theoreticalOdds, 4) }}</span>
+            </div>
+            <div class="data-row" v-if="baseData.subTheoreticalOdds">
+              <label>真理・副獎理論賠率</label>
+              <span class="num">{{ fmtNum(baseData.subTheoreticalOdds, 4) }}</span>
+            </div>
+            <div class="data-row highlight-row mt-2">
               <label>當前利潤</label>
               <span class="num" :class="computedOddsA.profit >= 0 ? 'profit-pos' : 'text-danger'">
                 {{ fmtNum(computedOddsA.profit, 4) }}%
@@ -327,7 +343,15 @@ const isNotFoundNumber = computed(() => {
           </div>
 
           <div class="result-section flex-grow-end">
-            <div class="data-row highlight-row">
+            <div class="data-row separator">
+              <label>真理・主獎理論賠率</label>
+              <span class="num">{{ fmtNum(baseData.theoreticalOdds, 4) }}</span>
+            </div>
+            <div class="data-row" v-if="baseData.subTheoreticalOdds">
+              <label>真理・副獎理論賠率</label>
+              <span class="num">{{ fmtNum(baseData.subTheoreticalOdds, 4) }}</span>
+            </div>
+            <div class="data-row highlight-row mt-2">
               <label>當前利潤</label>
               <span class="num" :class="computedOddsB.profit >= 0 ? 'profit-pos' : 'text-danger'">
                 {{ fmtNum(computedOddsB.profit, 4) }}%

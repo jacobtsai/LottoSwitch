@@ -21,7 +21,6 @@ export function useOddsCalculator(initialPlay) {
     additionalProfit: play.value.costB.additionalProfit
   })
 
-  const oddsA = ref({ additionalProfit: play.value.oddsA.additionalProfit || 0 })
   const oddsB = ref({ additionalProfit: 20 })
 
   // 內部數學真值基準點（用於消除 CSV CSV 四捨五入造成的字串落差）
@@ -109,8 +108,7 @@ export function useOddsCalculator(initialPlay) {
   // 現金盤 A/B (單向防禦機制)
   const oddsA_TargetProfit = computed(() => {
     const baseP = play.value.oddsA.baseProfit || 0
-    const addP = oddsA.value.additionalProfit || 0
-    return new Decimal(baseP).times(100).plus(deltaProfit.value).plus(addP).toNumber()
+    return new Decimal(baseP).times(100).plus(deltaProfit.value).toNumber()
   })
 
   // 賠率 B 盤是以 A 盤為基準，疊加其百分比 (例如 20% 即為 A 盤利潤 * 1.2)
@@ -167,7 +165,6 @@ export function useOddsCalculator(initialPlay) {
     costB.value.rebate = newPlay.costB.baseRebate
     costB.value.additionalProfit = newPlay.costB.additionalProfit
     
-    oddsA.value.additionalProfit = newPlay.oddsA.additionalProfit || 0
     oddsB.value.additionalProfit = 20
 
     // 初始化當下，立即擷取引擎端計算出的絕對精準利潤，做為日後 Delta 偏移的基底

@@ -155,7 +155,7 @@ const isNotFoundNumber = computed(() => {
         </div>
       </section>
 
-      <section class="markets-grid" v-if="play && !isNotFoundNumber">
+      <section class="markets-grid" v-if="play">
         <!-- ================= COST A (MASTER) ================= -->
         <div class="market-panel glass-panel master-panel">
           <div class="panel-header">
@@ -170,11 +170,12 @@ const isNotFoundNumber = computed(() => {
               <div v-if="requiredCatForNumber" class="form-group mb-4 p-3" style="background: rgba(56, 189, 248, 0.1); border: 1px solid var(--accent-color); border-radius: 8px; text-align: center;">
                  <label class="warning mb-2" style="display:block; color: var(--accent-color) !important;">{{ requiredCatForNumber }} - 手動綁定號碼：</label>
                  <input type="text" v-model="manualNumberInput" style="font-size: 1.25rem; font-weight: bold; text-align: center; width: 100%; padding: 0.5rem; border-radius: 6px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1);" placeholder="例如: 01, 88...">
-                 <p v-if="isNotFoundNumber" class="error-msg" style="margin-top: 0.5rem; font-size:0.75rem;">⚠️ 查無此號碼</p>
+                 <p v-if="isNotFoundNumber" class="error-msg" style="margin-top: 0.5rem; font-size:0.75rem;">⚠️ 等待完整號碼輸入中...</p>
                  <p v-else-if="manualNumberInput" class="success-msg" style="margin-top: 0.5rem; font-size:0.75rem;">✅ 已載入</p>
               </div>
             </transition>
 
+            <template v-if="!isNotFoundNumber">
             <div class="form-group flex-group">
               <label>給定賠率</label>
               <input type="number" v-model.number="costA.givenOdds" step="0.1">
@@ -197,9 +198,10 @@ const isNotFoundNumber = computed(() => {
                 </div>
               </div>
             </div>
+            </template>
           </div>
 
-          <div class="result-section flex-grow-end">
+          <div class="result-section flex-grow-end" v-if="!isNotFoundNumber">
             <div class="result-row">
               <label>驅動偏移基準 (Delta)</label>
               <span class="num highlight">{{ deltaProfit > 0 ? '+' : '' }}{{ fmtNum(deltaProfit, 4) }}%</span>
@@ -218,7 +220,7 @@ const isNotFoundNumber = computed(() => {
         </div>
 
         <!-- ================= COST B ================= -->
-        <div class="market-panel glass-panel slave-panel master-b-panel">
+        <div class="market-panel glass-panel slave-panel master-b-panel" v-if="!isNotFoundNumber">
           <div class="panel-header">
             <div class="header-top">
               <h3>成本 B 盤 <span class="badge badge-slave">進階干預</span></h3>
@@ -273,7 +275,7 @@ const isNotFoundNumber = computed(() => {
         </div>
 
         <!-- ================= ODDS A ================= -->
-        <div class="market-panel glass-panel slave-panel">
+        <div class="market-panel glass-panel slave-panel" v-if="!isNotFoundNumber">
           <div class="panel-header">
             <div class="header-top">
               <h3>賠率 A 盤 <span class="badge badge-slave">連動派彩</span></h3>
@@ -314,7 +316,7 @@ const isNotFoundNumber = computed(() => {
         </div>
 
         <!-- ================= ODDS B ================= -->
-        <div class="market-panel glass-panel slave-panel">
+        <div class="market-panel glass-panel slave-panel" v-if="!isNotFoundNumber">
           <div class="panel-header">
             <div class="header-top">
               <h3>賠率 B 盤 <span class="badge badge-slave">連動派彩</span></h3>

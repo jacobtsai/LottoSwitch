@@ -31,18 +31,12 @@ export function useOddsCalculator(initialPlay) {
     let cost = new Decimal(0)
     const b = play.value.baseData
     if (given > 0) {
-      if (b.prob > 0) {
-        cost = cost.plus(new Decimal(given).times(b.prob))
-      } else if (b.theoreticalOdds > 0) {
-        cost = cost.plus(new Decimal(given).dividedBy(b.theoreticalOdds).times(100))
-      }
+      if (b.prob > 0) cost = cost.plus(new Decimal(given).times(b.prob))
+      else if (b.theoreticalOdds > 0) cost = cost.plus(new Decimal(given).dividedBy(b.theoreticalOdds).times(100))
     }
     if (subGiven !== null) {
-      if (b.subProb && b.subProb > 0) {
-        cost = cost.plus(new Decimal(subGiven).times(b.subProb))
-      } else if (b.subTheoreticalOdds && b.subTheoreticalOdds > 0) {
-        cost = cost.plus(new Decimal(subGiven).dividedBy(b.subTheoreticalOdds).times(100))
-      }
+      if (b.subProb && b.subProb > 0) cost = cost.plus(new Decimal(subGiven).times(b.subProb))
+      else if (b.subTheoreticalOdds && b.subTheoreticalOdds > 0) cost = cost.plus(new Decimal(subGiven).dividedBy(b.subTheoreticalOdds).times(100))
     }
     return cost.toNumber()
   }
@@ -52,10 +46,14 @@ export function useOddsCalculator(initialPlay) {
   watch(() => costA.value.cost, (val) => { costA.value.rebate = new Decimal(100).minus(val).toDecimalPlaces(4).toNumber() })
 
   const theoreticalCostA = computed(() => calcTheoCost(costA.value.givenOdds, costA.value.subGivenOdds))
-  const actualProfitA = computed(() => new Decimal(costA.value.cost).minus(theoreticalCostA.value).toNumber())
+  const actualProfitA = computed(() => {
+    return new Decimal(costA.value.cost).minus(theoreticalCostA.value).toNumber()
+  })
   
   // Delta (偏移基準) 現在嚴格對齊「引擎初始化時算出的數學真值」，消除與 CSV 字串的四捨五入誤差
-  const deltaProfit = computed(() => new Decimal(actualProfitA.value).minus(initialActualProfitA.value).toNumber())
+  const deltaProfit = computed(() => {
+    return new Decimal(actualProfitA.value).minus(initialActualProfitA.value).toNumber()
+  })
 
   const theoreticalCostB = computed(() => calcTheoCost(costB.value.givenOdds, costB.value.subGivenOdds))
 
@@ -129,12 +127,10 @@ export function useOddsCalculator(initialPlay) {
     
     let subGiven = origConfig.subGivenOdds
     let theoCostFromSub = new Decimal(0)
-    if (subGiven !== null) {
-      if (b.subProb && b.subProb > 0) {
-        theoCostFromSub = new Decimal(subGiven).times(b.subProb)
-      } else if (b.subTheoreticalOdds && b.subTheoreticalOdds > 0) {
-        theoCostFromSub = new Decimal(subGiven).dividedBy(b.subTheoreticalOdds).times(100)
-      }
+    if (subGiven !== null && b.subProb && b.subProb > 0) {
+      theoCostFromSub = new Decimal(subGiven).times(b.subProb)
+    } else if (subGiven !== null && b.subTheoreticalOdds && b.subTheoreticalOdds > 0) {
+      theoCostFromSub = new Decimal(subGiven).dividedBy(b.subTheoreticalOdds).times(100)
     }
     
     let mainGiven = new Decimal(0)

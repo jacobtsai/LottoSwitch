@@ -93,10 +93,10 @@ export function useOddsCalculator(initialPlay) {
     return (baseP * 100) + deltaProfit.value + addP
   })
 
-  // 賠率 B 盤是極其嚴格地基於賠率 A 盤的總利潤往上疊加
+  // 賠率 B 盤是以 A 盤為基準，疊加其百分比 (例如 20% 即為 A 盤利潤 * 1.2)
   const oddsB_TargetProfit = computed(() => {
-    const addP = oddsB.value.additionalProfit || 0
-    return oddsA_TargetProfit.value + addP
+    const multiplier = (oddsB.value.additionalProfit || 0) / 100
+    return oddsA_TargetProfit.value * (1 + multiplier)
   })
 
   const calcCashOddsFromProfit = (baseDataKey, targetProfit) => {

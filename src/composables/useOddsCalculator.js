@@ -20,8 +20,8 @@ export function useOddsCalculator(initialPlay) {
     additionalProfit: play.value.costB.additionalProfit
   })
 
-  const oddsA = ref({ additionalProfit: play.value.oddsA.additionalProfit })
-  const oddsB = ref({ additionalProfit: play.value.oddsB.additionalProfit })
+  const oddsA = ref({ additionalProfit: play.value.oddsA.additionalProfit || 0 })
+  const oddsB = ref({ additionalProfit: 20 })
 
   const calcTheoCost = (given, subGiven) => {
     let cost = 0
@@ -87,30 +87,16 @@ export function useOddsCalculator(initialPlay) {
   const computedProfitB = computed(() => costB.value.cost - theoreticalCostB.value)
 
   // 現金盤 A/B (單向防禦機制)
-  const oddsA_TargetProfit = computed({
-    get() {
-      const baseP = play.value.oddsA.baseProfit || 0
-      const addP = oddsA.value.additionalProfit || 0
-      return (baseP * 100) + deltaProfit.value + (addP * 100)
-    },
-    set(newProfit) {
-      if (typeof newProfit !== 'number' || isNaN(newProfit)) return
-      const baseP = play.value.oddsA.baseProfit || 0
-      oddsA.value.additionalProfit = +((newProfit - (baseP * 100) - deltaProfit.value) / 100).toFixed(6)
-    }
+  const oddsA_TargetProfit = computed(() => {
+    const baseP = play.value.oddsA.baseProfit || 0
+    const addP = oddsA.value.additionalProfit || 0
+    return (baseP * 100) + deltaProfit.value + addP
   })
 
-  const oddsB_TargetProfit = computed({
-    get() {
-      const baseP = play.value.oddsB.baseProfit || 0
-      const addP = oddsB.value.additionalProfit || 0
-      return (baseP * 100) + deltaProfit.value + (addP * 100)
-    },
-    set(newProfit) {
-      if (typeof newProfit !== 'number' || isNaN(newProfit)) return
-      const baseP = play.value.oddsB.baseProfit || 0
-      oddsB.value.additionalProfit = +((newProfit - (baseP * 100) - deltaProfit.value) / 100).toFixed(6)
-    }
+  // 賠率 B 盤是極其嚴格地基於賠率 A 盤的總利潤往上疊加
+  const oddsB_TargetProfit = computed(() => {
+    const addP = oddsB.value.additionalProfit || 0
+    return oddsA_TargetProfit.value + addP
   })
 
   const calcCashOddsFromProfit = (baseDataKey, targetProfit) => {
@@ -157,8 +143,8 @@ export function useOddsCalculator(initialPlay) {
     costB.value.rebate = newPlay.costB.baseRebate
     costB.value.additionalProfit = newPlay.costB.additionalProfit
     
-    oddsA.value.additionalProfit = newPlay.oddsA.additionalProfit
-    oddsB.value.additionalProfit = newPlay.oddsB.additionalProfit
+    oddsA.value.additionalProfit = newPlay.oddsA.additionalProfit || 0
+    oddsB.value.additionalProfit = 20
 
     nextTick(() => { isSyncingB = false })
   }

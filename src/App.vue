@@ -45,8 +45,8 @@ const {
   play, baseData,
   costA, theoreticalCostA, actualProfitA, deltaProfit,
   costB, theoreticalCostB, computedProfitB,
-  oddsA, computedOddsA, oddsA_TargetProfit,
-  oddsB, computedOddsB, oddsB_TargetProfit
+  oddsA, computedOddsA,
+  oddsB, computedOddsB
 } = engine
 
 watch(selectedGameName, () => {
@@ -273,14 +273,6 @@ const isNotFoundNumber = computed(() => {
           </div>
           
           <div class="form-section">
-            <div class="form-group flex-group mb-4">
-              <label>自訂給定利潤率 (手動干預)</label>
-              <div class="input-suffix">
-                <input type="number" v-model.number="oddsA_TargetProfit" step="0.1" class="border-warning">
-                <span>%</span>
-              </div>
-            </div>
-
             <div class="data-box mb-4">
               <div class="data-row box-highlight">
                 <label>反推現金最高賠率</label>
@@ -294,10 +286,6 @@ const isNotFoundNumber = computed(() => {
           </div>
 
           <div class="result-section flex-grow-end">
-            <div class="data-row separator">
-              <label>目標理論成本</label>
-              <span class="num">{{ fmtNum(computedOddsA.theoreticalCost) }}</span>
-            </div>
             <div class="data-row highlight-row">
               <label>當前利潤</label>
               <span class="num profit-pos">{{ fmtNum(computedOddsA.profit, 4) }}%</span>
@@ -322,14 +310,6 @@ const isNotFoundNumber = computed(() => {
           </div>
           
           <div class="form-section">
-            <div class="form-group flex-group mb-4">
-              <label>自訂給定利潤率 (手動干預)</label>
-              <div class="input-suffix">
-                <input type="number" v-model.number="oddsB_TargetProfit" step="0.1" class="border-warning">
-                <span>%</span>
-              </div>
-            </div>
-
             <div class="data-box mb-4">
               <div class="data-row box-highlight">
                 <label>反推現金最高賠率</label>
@@ -343,10 +323,6 @@ const isNotFoundNumber = computed(() => {
           </div>
 
           <div class="result-section flex-grow-end">
-            <div class="data-row separator">
-              <label>目標理論成本</label>
-              <span class="num">{{ fmtNum(computedOddsB.theoreticalCost) }}</span>
-            </div>
             <div class="data-row highlight-row">
               <label>當前利潤</label>
               <span class="num profit-pos">{{ fmtNum(computedOddsB.profit, 4) }}%</span>

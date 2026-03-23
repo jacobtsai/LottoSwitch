@@ -87,13 +87,36 @@ export function useOddsCalculator(initialPlay) {
   const computedProfitB = computed(() => costB.value.cost - theoreticalCostB.value)
 
   // 現金盤 A/B (單向防禦機制)
-  const calcCashOdds = (baseDataKey, additionalProfitRef) => {
+  const oddsA_TargetProfit = computed({
+    get() {
+      const baseP = play.value.oddsA.baseProfit || 0
+      const addP = oddsA.value.additionalProfit || 0
+      return (baseP * 100) + deltaProfit.value + (addP * 100)
+    },
+    set(newProfit) {
+      if (typeof newProfit !== 'number' || isNaN(newProfit)) return
+      const baseP = play.value.oddsA.baseProfit || 0
+      oddsA.value.additionalProfit = +((newProfit - (baseP * 100) - deltaProfit.value) / 100).toFixed(6)
+    }
+  })
+
+  const oddsB_TargetProfit = computed({
+    get() {
+      const baseP = play.value.oddsB.baseProfit || 0
+      const addP = oddsB.value.additionalProfit || 0
+      return (baseP * 100) + deltaProfit.value + (addP * 100)
+    },
+    set(newProfit) {
+      if (typeof newProfit !== 'number' || isNaN(newProfit)) return
+      const baseP = play.value.oddsB.baseProfit || 0
+      oddsB.value.additionalProfit = +((newProfit - (baseP * 100) - deltaProfit.value) / 100).toFixed(6)
+    }
+  })
+
+  const calcCashOddsFromProfit = (baseDataKey, targetProfit) => {
     const b = play.value.baseData
     const origConfig = play.value[baseDataKey]
     
-    const baseP = origConfig.baseProfit || 0
-    const addP = additionalProfitRef.value.additionalProfit || 0
-    const targetProfit = (baseP * 100) + deltaProfit.value + (addP * 100)
     const targetTheoCost = 100 - targetProfit
     
     let subGiven = origConfig.subGivenOdds
@@ -116,8 +139,8 @@ export function useOddsCalculator(initialPlay) {
     }
   }
 
-  const computedOddsA = computed(() => calcCashOdds('oddsA', oddsA))
-  const computedOddsB = computed(() => calcCashOdds('oddsB', oddsB))
+  const computedOddsA = computed(() => calcCashOddsFromProfit('oddsA', oddsA_TargetProfit.value))
+  const computedOddsB = computed(() => calcCashOddsFromProfit('oddsB', oddsB_TargetProfit.value))
 
   const setPlay = (newPlay) => {
     play.value = newPlay
@@ -151,8 +174,10 @@ export function useOddsCalculator(initialPlay) {
     computedProfitB,
     oddsA,
     computedOddsA,
+    oddsA_TargetProfit,
     oddsB,
     computedOddsB,
+    oddsB_TargetProfit,
     setPlay,
     deltaProfit
   }

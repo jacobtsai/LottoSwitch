@@ -45,8 +45,8 @@ const {
   play, baseData,
   costA, theoreticalCostA, actualProfitA, deltaProfit,
   costB, theoreticalCostB, computedProfitB,
-  oddsA, computedOddsA,
-  oddsB, computedOddsB
+  oddsA, computedOddsA, oddsA_TargetProfit,
+  oddsB, computedOddsB, oddsB_TargetProfit
 } = engine
 
 watch(selectedGameName, () => {
@@ -273,6 +273,14 @@ const isNotFoundNumber = computed(() => {
           </div>
           
           <div class="form-section">
+            <div class="form-group flex-group mb-4">
+              <label>自訂給定利潤率 (手動干預)</label>
+              <div class="input-suffix">
+                <input type="number" v-model.number="oddsA_TargetProfit" step="0.1" class="border-warning">
+                <span>%</span>
+              </div>
+            </div>
+
             <div class="data-box mb-4">
               <div class="data-row box-highlight">
                 <label>反推現金最高賠率</label>
@@ -314,6 +322,14 @@ const isNotFoundNumber = computed(() => {
           </div>
           
           <div class="form-section">
+            <div class="form-group flex-group mb-4">
+              <label>自訂給定利潤率 (手動干預)</label>
+              <div class="input-suffix">
+                <input type="number" v-model.number="oddsB_TargetProfit" step="0.1" class="border-warning">
+                <span>%</span>
+              </div>
+            </div>
+
             <div class="data-box mb-4">
               <div class="data-row box-highlight">
                 <label>反推現金最高賠率</label>

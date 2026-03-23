@@ -1,44 +1,92 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import allData from './assets/data.json'
 import { useOddsCalculator } from './composables/useOddsCalculator'
+import Multiselect from '@vueform/multiselect'
+import '@vueform/multiselect/themes/default.css'
 
 const gamesList = Object.keys(allData)
 const selectedGameName = ref(gamesList[0])
-
 const currentPlays = computed(() => allData[selectedGameName.value] || [])
-const selectedPlayIndex = ref(0) // Default to first (e.g., '二星')
 
-watch(selectedGameName, () => {
-  selectedPlayIndex.value = 0
+const selectedPlayValue = ref(null)
+const manualNumberInput = ref('')
+const requiredCatForNumber = ref(null) // e.g., '台號'
+
+// Grouping structure for Multiselect
+const groupedOptions = computed(() => {
+  const groups = {}
+  
+  currentPlays.value.forEach((p, idx) => {
+    // 屏除「部份遊戲沒有『特碼』的玩法（無總次數且無機率）」
+    if ((p.baseData.totalCount === 0 || p.baseData.totalCount === null) && p.baseData.theoreticalOdds === 0) return
+
+    let cat = p.category || '一般'
+    const isNumInput = cat === '台號' || cat.includes('特尾三') || cat.includes('特三')
+    
+    if (!groups[cat]) {
+      groups[cat] = { label: cat, options: [] }
+    }
+    
+    if (isNumInput) {
+      if (groups[cat].options.length === 0) {
+        // 只留一個代表性的入口放入下拉
+        groups[cat].options.push({ value: `NUM_INPUT_${cat}`, label: `【手動指定號碼】 ${cat}` })
+      }
+    } else {
+      groups[cat].options.push({ value: idx, label: p.playType })
+    }
+  })
+  return Object.values(groups)
 })
 
-const selectedPlayData = computed(() => {
-  if (currentPlays.value.length === 0) return null
-  return currentPlays.value[selectedPlayIndex.value]
-})
-
-// Initialize Engine
-const engine = useOddsCalculator(currentPlays.value[0])
-
-watch(selectedPlayData, (newPlay) => {
-  if (newPlay) {
-    engine.setPlay(newPlay)
-  }
-})
+// Initialize Engine with a safe fallback
+const engine = useOddsCalculator(currentPlays.value[1] || currentPlays.value[0])
 
 const {
   play, baseData,
   costA, theoreticalCostA, actualProfitA, deltaProfit,
-  costB, computedCostB,
+  costB, theoreticalCostB, computedProfitB,
   oddsA, computedOddsA,
   oddsB, computedOddsB
 } = engine
 
-// Formatters
-const fmtNum = (val, decimals = 2) => val !== null && val !== undefined ? Number(val).toFixed(decimals) : '-'
-const fmtPerc = (val) => val !== null && val !== undefined ? (val * 100).toFixed(4) + '%' : '-'
+watch(selectedGameName, () => {
+  selectedPlayValue.value = null
+  manualNumberInput.value = ''
+  requiredCatForNumber.value = null
+})
 
+watch(selectedPlayValue, (val) => {
+  if (val === null) return
+
+  if (typeof val === 'string' && val.startsWith('NUM_INPUT_')) {
+    requiredCatForNumber.value = val.replace('NUM_INPUT_', '')
+    manualNumberInput.value = '' // 清空讓玩家準備輸入
+  } else {
+    requiredCatForNumber.value = null
+    const targetPlay = currentPlays.value[val]
+    if (targetPlay) engine.setPlay(targetPlay)
+  }
+})
+
+watch(manualNumberInput, (newNum) => {
+  if (requiredCatForNumber.value && newNum) {
+    const formattedNum = newNum.trim()
+    const found = currentPlays.value.find(p => p.category === requiredCatForNumber.value && p.playType === formattedNum)
+    if (found) {
+      engine.setPlay(found)
+    }
+  }
+})
+
+// UI Helpers
+const fmtNum = (val, decimals = 2) => val !== null && val !== undefined && !isNaN(val) ? Number(val).toFixed(decimals) : '-'
+const fmtPerc = (val) => val !== null && val !== undefined && !isNaN(val) ? (val * 100).toFixed(4) + '%' : '-'
+
+const isNotFoundNumber = computed(() => {
+  return requiredCatForNumber.value && manualNumberInput.value && play.value?.playType !== manualNumberInput.value.trim()
+})
 </script>
 
 <template>
@@ -51,23 +99,36 @@ const fmtPerc = (val) => val !== null && val !== undefined ? (val * 100).toFixed
       <div class="controls">
         <div class="form-group mb-0">
           <label>選擇遊戲</label>
-          <select v-model="selectedGameName">
+          <select class="native-select" v-model="selectedGameName">
             <option v-for="g in gamesList" :key="g" :value="g">{{ g }}</option>
           </select>
         </div>
-        <div class="form-group mb-0">
-          <label>選擇玩法</label>
-          <select v-model="selectedPlayIndex">
-            <option v-for="(p, i) in currentPlays" :key="i" :value="i">[{{ p.category }}] {{ p.playType }}</option>
-          </select>
+        <div class="form-group mb-0 group-select-box">
+          <label>指定分類與玩法</label>
+          <!-- 群組階層樹狀下拉單 -->
+          <Multiselect
+            v-model="selectedPlayValue"
+            :options="groupedOptions"
+            :groups="true"
+            :searchable="true"
+            placeholder="點擊選擇階層分類與對應玩法..."
+          />
         </div>
       </div>
     </header>
 
-    <main class="main-content" v-if="play">
+    <main class="main-content">
+      <!-- 若選中台號，強迫卡特尾輸入框 -->
+      <div v-if="requiredCatForNumber" class="glass-panel manual-num-panel mb-4">
+         <h2>{{ requiredCatForNumber }} - 請輸入欲查詢號碼</h2>
+         <input type="text" v-model="manualNumberInput" class="large-input" placeholder="例如: 01, 88...">
+         <p v-if="isNotFoundNumber" class="error-msg">⚠️ 查無該號碼資料，請輸入有效號碼，或等待輸入完成。</p>
+         <p v-else-if="manualNumberInput" class="success-msg">✅ 載入成功！目前顯示號碼 {{ manualNumberInput }} 數據</p>
+      </div>
+
       <!-- 基礎資料 -->
-      <section class="base-data glass-panel">
-        <h2 class="section-title">原始邏輯數值 (Zero-sum Base)</h2>
+      <section class="base-data glass-panel" v-if="play && !isNotFoundNumber">
+        <h2 class="section-title">原始邏輯數值 (Zero-sum Base) - [{{ play.category }}] {{ play.playType }}</h2>
         <div class="data-grid">
           <div class="data-item">
             <label>資料筆數</label>
@@ -95,12 +156,12 @@ const fmtPerc = (val) => val !== null && val !== undefined ? (val * 100).toFixed
       </section>
 
       <!-- 變盤引擎操作區 (4 Columns) -->
-      <section class="markets-grid">
+      <section class="markets-grid" v-if="play && !isNotFoundNumber">
         <!-- ================= COST A (MASTER) ================= -->
         <div class="market-panel glass-panel master-panel">
           <div class="panel-header">
             <h3>成本 A 盤 <span class="badge badge-master">Master 主控</span></h3>
-            <p class="desc">高退水盤口。變動此盤口數值將即時連動其他三盤。</p>
+            <p class="desc">高退水盤口。變動此處將即時連動其他三盤。</p>
           </div>
           
           <div class="form-section">
@@ -128,7 +189,7 @@ const fmtPerc = (val) => val !== null && val !== undefined ? (val * 100).toFixed
             </div>
           </div>
 
-          <div class="result-section">
+          <div class="result-section flex-grow-end">
             <div class="result-row">
               <label>理論成本 (Expected)</label>
               <span class="num">{{ fmtNum(theoreticalCostA) }}</span>
@@ -140,62 +201,57 @@ const fmtPerc = (val) => val !== null && val !== undefined ? (val * 100).toFixed
               </span>
             </div>
             <div class="result-row">
-              <label>衍生盤口基準 (Delta)</label>
+              <label>驅動用偏移基準 (Delta)</label>
               <span class="num highlight">{{ deltaProfit > 0 ? '+' : '' }}{{ fmtNum(deltaProfit, 4) }}%</span>
             </div>
-            
-            <hr class="divider">
-            <div class="form-group">
-              <label>利潤疊加 (Additional Margin)</label>
-              <div class="input-suffix">
-                <input type="number" v-model.number="costA.additionalProfit" step="0.1">
-                <span>%</span>
-              </div>
-            </div>
+            <!-- User requested to remove Additional Profit from Cost A -->
           </div>
         </div>
 
         <!-- ================= COST B ================= -->
-        <div class="market-panel glass-panel slave-panel">
+        <div class="market-panel glass-panel slave-panel master-b-panel">
           <div class="panel-header">
-            <h3>成本 B 盤 <span class="badge badge-slave">連動</span></h3>
-            <p class="desc">高賠率盤口。系統自動反推退水以維持等同 A 盤的利潤率。</p>
+            <h3>成本 B 盤 <span class="badge badge-slave">進階干預</span></h3>
+            <p class="desc">預設隨 A 盤利潤連動，也可透過手動填入直接改變 B 盤退水</p>
           </div>
           
-          <div class="readonly-section">
-            <div class="data-row">
-              <label>目標給定賠率</label>
-              <span class="num highlight">{{ fmtNum(computedCostB.givenOdds) }}</span>
+          <div class="form-section">
+            <div class="form-group flex-group">
+              <label>自訂高賠率目標</label>
+              <input type="number" v-model.number="costB.givenOdds" step="0.1" class="border-accent">
             </div>
-            <div class="data-row" v-if="computedCostB.subGivenOdds !== null">
-              <label>目標副獎給定賠率</label>
-              <span class="num warning">{{ fmtNum(computedCostB.subGivenOdds) }}</span>
+            <div class="form-group flex-group" v-if="costB.subGivenOdds !== null">
+              <label>自訂副獎賠率</label>
+              <input type="number" v-model.number="costB.subGivenOdds" step="0.1" class="border-accent">
             </div>
             
-            <div class="data-box mt-4">
-              <div class="data-row box-highlight">
-                <label>反推給定退水</label>
-                <span class="num highlight">{{ fmtNum(computedCostB.rebate) }}</span>
-              </div>
-              <div class="data-row">
-                <label>反推給定成本</label>
-                <span class="num">{{ fmtNum(computedCostB.cost) }}</span>
-              </div>
-              <div class="data-row separator">
-                <label>目標理論成本</label>
-                <span class="num">{{ fmtNum(computedCostB.theoreticalCost) }}</span>
-              </div>
-              <div class="data-row">
-                 <label>鎖定目標利潤</label>
-                 <span class="num profit-pos">{{ fmtNum(computedCostB.profit, 4) }}%</span>
+            <div class="form-group flex-group mt-3">
+              <label>反算與手動退水覆蓋</label>
+              <div class="split-inputs">
+                <div>
+                  <small>給定退水 (可編輯)</small>
+                  <input type="number" v-model.number="costB.rebate" step="0.1" class="border-warning">
+                </div>
+                <div>
+                  <small>給定成本 (Cost)</small>
+                  <input type="number" v-model.number="costB.cost" step="0.1">
+                </div>
               </div>
             </div>
           </div>
 
           <div class="result-section flex-grow-end">
+             <div class="data-row separator">
+                <label>目標理論成本</label>
+                <span class="num">{{ fmtNum(theoreticalCostB) }}</span>
+              </div>
+              <div class="data-row highlight-row">
+                 <label>當前 B 盤利潤</label>
+                 <span class="num profit-pos">{{ fmtNum(computedProfitB, 4) }}%</span>
+              </div>
             <hr class="divider">
             <div class="form-group">
-              <label>利潤疊加 (自訂溢價)</label>
+              <label>利潤疊加 (被動推算 / 或手動干預)</label>
               <div class="input-suffix">
                 <input type="number" v-model.number="costB.additionalProfit" step="0.1">
                 <span>%</span>
@@ -208,13 +264,13 @@ const fmtPerc = (val) => val !== null && val !== undefined ? (val * 100).toFixed
         <div class="market-panel glass-panel slave-panel">
           <div class="panel-header">
             <h3>賠率 A 盤 <span class="badge badge-slave">連動</span></h3>
-            <p class="desc">現金玩法。隨 A 盤利潤變化，自動反推新的最高派彩賠率。</p>
+            <p class="desc">現金玩法。隨 A 盤利潤變化，自動反推新的派彩賠率。</p>
           </div>
           
           <div class="readonly-section">
             <div class="data-box mb-4">
               <div class="data-row box-highlight">
-                <label>反推給定賠率</label>
+                <label>反推現金最高賠率</label>
                 <span class="num highlight">{{ fmtNum(computedOddsA.givenOdds) }}</span>
               </div>
               <div class="data-row" v-if="computedOddsA.subGivenOdds !== null">
@@ -249,13 +305,13 @@ const fmtPerc = (val) => val !== null && val !== undefined ? (val * 100).toFixed
         <div class="market-panel glass-panel slave-panel">
           <div class="panel-header">
             <h3>賠率 B 盤 <span class="badge badge-slave">連動</span></h3>
-            <p class="desc">現金玩法。隨 A 盤利潤變化，自動反推新的最高派彩賠率。</p>
+            <p class="desc">現金玩法。隨 A 盤利潤變化，自動反推新的派彩賠率。</p>
           </div>
           
           <div class="readonly-section">
             <div class="data-box mb-4">
               <div class="data-row box-highlight">
-                <label>反推給定賠率</label>
+                <label>反推現金最高賠率</label>
                 <span class="num highlight">{{ fmtNum(computedOddsB.givenOdds) }}</span>
               </div>
               <div class="data-row" v-if="computedOddsB.subGivenOdds !== null">
@@ -321,15 +377,23 @@ const fmtPerc = (val) => val !== null && val !== undefined ? (val * 100).toFixed
 .controls {
   display: flex;
   gap: 1rem;
-  min-width: 400px;
+  width: 500px;
 }
 
 .controls .form-group {
   flex: 1;
 }
+.group-select-box {
+  flex: 2 !important;
+}
+
+.native-select {
+  height: 40px;
+}
 
 .mb-0 { margin-bottom: 0 !important; }
-.mt-4 { margin-top: 1rem; }
+.mb-4 { margin-bottom: 1.5rem !important; }
+.mt-3 { margin-top: 1rem; }
 
 .section-title {
   font-size: 1.1rem;
@@ -338,6 +402,24 @@ const fmtPerc = (val) => val !== null && val !== undefined ? (val * 100).toFixed
   text-transform: uppercase;
   letter-spacing: 1px;
 }
+
+.manual-num-panel {
+  text-align: center;
+  border-color: rgba(56, 189, 248, 0.4);
+  background: rgba(56, 189, 248, 0.05);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.1);
+}
+.manual-num-panel h2 { margin-bottom: 1rem; }
+.large-input {
+  font-size: 1.8rem;
+  text-align: center;
+  width: 300px;
+  padding: 1rem;
+  border-radius: 12px;
+  background: rgba(0,0,0,0.4);
+}
+.error-msg { margin-top: 0.5rem; color: var(--danger-color); font-size: 0.85rem;}
+.success-msg { margin-top: 0.5rem; color: var(--success-color); font-size: 0.85rem;}
 
 .data-grid {
   display: flex;
@@ -357,7 +439,7 @@ const fmtPerc = (val) => val !== null && val !== undefined ? (val * 100).toFixed
 .data-item .num {
   font-size: 1.5rem;
 }
-.warning { color: var(--warning-color); }
+.warning { color: var(--warning-color) !important; }
 
 .markets-grid {
   display: grid;
@@ -410,6 +492,13 @@ const fmtPerc = (val) => val !== null && val !== undefined ? (val * 100).toFixed
   box-shadow: 0 0 30px rgba(248, 113, 113, 0.05);
 }
 
+.master-b-panel {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(251, 191, 36, 0.3);
+}
+.border-accent { border: 1px solid var(--accent-color) !important;}
+.border-warning { border: 1px dashed var(--warning-color) !important;}
+
 .split-inputs {
   display: flex;
   gap: 0.5rem;
@@ -450,13 +539,14 @@ const fmtPerc = (val) => val !== null && val !== undefined ? (val * 100).toFixed
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
+  height: 100%;
 }
 
 .result-row, .data-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5rem 0;
+  padding: 0.4rem 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 .result-row:last-child, .data-row:last-child {
@@ -478,7 +568,7 @@ const fmtPerc = (val) => val !== null && val !== undefined ? (val * 100).toFixed
 .divider {
   border: none;
   border-top: 1px solid var(--border-color);
-  margin: 1.5rem 0;
+  margin: 1.25rem 0;
 }
 
 .data-box {
@@ -504,5 +594,28 @@ const fmtPerc = (val) => val !== null && val !== undefined ? (val * 100).toFixed
   border-top: 1px dashed rgba(255, 255, 255, 0.1);
   margin-top: 0.5rem;
   padding-top: 0.5rem;
+}
+
+/* Override multiselect theme for Glassmorphism */
+:deep(.multiselect) {
+  --ms-bg: rgba(0, 0, 0, 0.4);
+  --ms-border-color: rgba(255, 255, 255, 0.1);
+  --ms-dropdown-bg: #1e293b;
+  --ms-dropdown-border-color: rgba(255, 255, 255, 0.1);
+  --ms-option-bg-pointed: rgba(56, 189, 248, 0.2);
+  --ms-option-bg-selected: #38bdf8;
+  --ms-option-color-pointed: #fff;
+  --ms-option-color-selected: #fff;
+  --ms-font-color: #fff;
+  --ms-ring-color: rgba(56, 189, 248, 0.3);
+  --ms-radius: 6px;
+  height: 40px;
+}
+:deep(.multiselect-group-label) {
+  background: #0f172a;
+  color: var(--accent-color);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 </style>

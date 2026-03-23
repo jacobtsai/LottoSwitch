@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@vueform/multiselect": "^2.6.11",
     "papaparse": "^5.5.3",
     "vue": "^3.5.30"
   },

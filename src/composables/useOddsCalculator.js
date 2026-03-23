@@ -1,32 +1,28 @@
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 
 export function useOddsCalculator(initialPlay) {
-  // `play` is the original data for the selected Gameplay (玩法)
   const play = ref(initialPlay)
 
-  // Reactive state for markets (users can modify A parameters, others are computed/auto-linked except 'additionalProfit')
+  // A 盤
   const costA = ref({
     givenOdds: play.value.costA.givenOdds,
     subGivenOdds: play.value.costA.subGivenOdds,
     cost: play.value.costA.baseCost,
-    rebate: play.value.costA.baseRebate,
-    additionalProfit: 0
+    rebate: play.value.costA.baseRebate
   })
 
+  // B 盤 (Editable GivenOdds, subGivenOdds, Cost, Rebate, Auto-syncing AdditionalProfit)
   const costB = ref({
+    givenOdds: play.value.costB.givenOdds,
+    subGivenOdds: play.value.costB.subGivenOdds,
+    cost: play.value.costB.baseCost,
+    rebate: play.value.costB.baseRebate,
     additionalProfit: play.value.costB.additionalProfit
   })
 
-  const oddsA = ref({
-    additionalProfit: play.value.oddsA.additionalProfit
-  })
+  const oddsA = ref({ additionalProfit: play.value.oddsA.additionalProfit })
+  const oddsB = ref({ additionalProfit: play.value.oddsB.additionalProfit })
 
-  const oddsB = ref({
-    additionalProfit: play.value.oddsB.additionalProfit
-  })
-
-  // Helper: Calculate Theoretical Cost (%)
-  // Formula: (Given / Theo) * 100 + (SubGiven / SubTheo) * 100
   const calcTheoCost = (given, subGiven) => {
     let cost = 0
     const b = play.value.baseData
@@ -39,57 +35,58 @@ export function useOddsCalculator(initialPlay) {
     return cost
   }
 
-  // Cost A Sync between Rebate and Cost (Rebate + Cost = 100)
-  watch(() => costA.value.rebate, (val) => {
-    costA.value.cost = +(100 - val).toFixed(4)
-  })
-  watch(() => costA.value.cost, (val) => {
-    costA.value.rebate = +(100 - val).toFixed(4)
-  })
+  // A 盤連動 (互鎖)
+  watch(() => costA.value.rebate, (val) => { costA.value.cost = +(100 - val).toFixed(4) })
+  watch(() => costA.value.cost, (val) => { costA.value.rebate = +(100 - val).toFixed(4) })
 
-  // 1. Cost A Theoretical Cost & Actual Profit
   const theoreticalCostA = computed(() => calcTheoCost(costA.value.givenOdds, costA.value.subGivenOdds))
-  const actualProfitA = computed(() => {
-    return costA.value.cost + (costA.value.additionalProfit * 100) - theoreticalCostA.value
+  const actualProfitA = computed(() => costA.value.cost - theoreticalCostA.value)
+  const deltaProfit = computed(() => actualProfitA.value - ((play.value.costA.baseProfit || 0) * 100))
+
+  const theoreticalCostB = computed(() => calcTheoCost(costB.value.givenOdds, costB.value.subGivenOdds))
+
+  // 雙向綁定的防無限迴圈鎖
+  let isSyncingB = false
+
+  // 當 A 盤獲利改變或 B 盤賠率改變，B 盤主動反推成本並鎖死利潤
+  watch([actualProfitA, () => costB.value.givenOdds, () => costB.value.subGivenOdds, () => costB.value.additionalProfit], () => {
+    if (isSyncingB) return
+    isSyncingB = true
+    
+    const theoB = calcTheoCost(costB.value.givenOdds, costB.value.subGivenOdds)
+    const targetProfit = actualProfitA.value + (costB.value.additionalProfit * 100)
+    const newCost = targetProfit + theoB
+    
+    costB.value.cost = +(newCost).toFixed(4)
+    costB.value.rebate = +(100 - newCost).toFixed(4)
+    
+    nextTick(() => { isSyncingB = false })
   })
 
-  // 2. Delta (利潤差額) = Actual Profit A - Original Base Profit A
-  const deltaProfit = computed(() => {
-    const baseProfitAPercent = (play.value.costA.baseProfit || 0) * 100
-    return actualProfitA.value - baseProfitAPercent
-  })
+  // 當使用者手動強制干預 B 盤退水時，B 盤放棄原本的鎖定，轉而把差額寫回「利潤疊加」
+  watch([() => costB.value.rebate, () => costB.value.cost], ([newRebate, newCost], [oldR, oldC]) => {
+    if (isSyncingB) return
+    isSyncingB = true
 
-  // 3. Sync to Cost B (Master -> Slave)
-  // Cost B aims for the EXACT SAME profit as A (plus its own additional profit)
-  const computedCostB = computed(() => {
-    // Original fixed givenOdds for B from JSON config
-    const givenOddsB = play.value.costB.givenOdds
-    const subGivenOddsB = play.value.costB.subGivenOdds
-    
-    const theoCostB = calcTheoCost(givenOddsB, subGivenOddsB)
-    
-    // Target profit for B = Actual Profit A + B's additional profit stack
-    const targetProfitB = actualProfitA.value + (costB.value.additionalProfit * 100)
-    
-    // Since Profit = Cost - TheoCost, Cost = TargetProfit + TheoCost
-    const c = targetProfitB + theoCostB
-    const r = 100 - c
-    
-    return {
-      givenOdds: givenOddsB,
-      subGivenOdds: subGivenOddsB,
-      theoreticalCost: theoCostB,
-      cost: c,
-      rebate: r,
-      profit: targetProfitB
+    if (newRebate !== oldR) {
+      costB.value.cost = +(100 - newRebate).toFixed(4)
+      newCost = costB.value.cost
+    } else if (newCost !== oldC) {
+      costB.value.rebate = +(100 - newCost).toFixed(4)
     }
-  })
 
-  // 4. Sync to Odds A & Odds B (Master -> Slave)
-  // Cash markets use target profit = Base Cash Profit + Delta Profit + Additional Profit
-  // Cash markets do not have rebate/cost, so Profit = 100 - Theoretical Cost.
-  // Therefore: Theoretical Cost = 100 - Target Profit.
-  // Since Theoretical Cost = (Given / Theo) * 100, we derive Given Odds.
+    const theoB = calcTheoCost(costB.value.givenOdds, costB.value.subGivenOdds)
+    const currentActualProfitB = newCost - theoB
+    
+    // Reverse calculate additionalProfit needed to justify this override
+    costB.value.additionalProfit = +((currentActualProfitB - actualProfitA.value) / 100).toFixed(6)
+    
+    nextTick(() => { isSyncingB = false })
+  })
+  
+  const computedProfitB = computed(() => costB.value.cost - theoreticalCostB.value)
+
+  // 現金盤 A/B (單向防禦機制)
   const calcCashOdds = (baseDataKey, additionalProfitRef) => {
     const b = play.value.baseData
     const origConfig = play.value[baseDataKey]
@@ -99,12 +96,6 @@ export function useOddsCalculator(initialPlay) {
     const targetProfit = (baseP * 100) + deltaProfit.value + (addP * 100)
     const targetTheoCost = 100 - targetProfit
     
-    // Reverse math to find New Given Odds
-    // If there is NO sub prize:
-    // targetTheoCost = (given / b.theo) * 100 => given = (targetTheoCost / 100) * b.theo
-    // If there IS a sub prize, typically we keep the original sub prize and only adjust the main prize, 
-    // or scale proportionally. For betting systems, scaling main prize is standard.
-    // Let's keep sub prize fixed to original for simplicity, and shift all profit to main odds.
     let subGiven = origConfig.subGivenOdds
     let theoCostFromSub = 0
     if (subGiven !== null && b.subTheoreticalOdds) {
@@ -128,41 +119,40 @@ export function useOddsCalculator(initialPlay) {
   const computedOddsA = computed(() => calcCashOdds('oddsA', oddsA))
   const computedOddsB = computed(() => calcCashOdds('oddsB', oddsB))
 
-  // Provide method to switch active play entirely
   const setPlay = (newPlay) => {
     play.value = newPlay
-    // Reset A inputs
+    isSyncingB = true // Prevent erratic reverse calc during init
+    
     costA.value.givenOdds = newPlay.costA.givenOdds
     costA.value.subGivenOdds = newPlay.costA.subGivenOdds
     costA.value.cost = newPlay.costA.baseCost
     costA.value.rebate = newPlay.costA.baseRebate
-    costA.value.additionalProfit = 0
     
-    // Reset additions
+    costB.value.givenOdds = newPlay.costB.givenOdds
+    costB.value.subGivenOdds = newPlay.costB.subGivenOdds
+    costB.value.cost = newPlay.costB.baseCost
+    costB.value.rebate = newPlay.costB.baseRebate
     costB.value.additionalProfit = newPlay.costB.additionalProfit
+    
     oddsA.value.additionalProfit = newPlay.oddsA.additionalProfit
     oddsB.value.additionalProfit = newPlay.oddsB.additionalProfit
+
+    nextTick(() => { isSyncingB = false })
   }
 
   return {
     play,
     baseData: play.value.baseData,
-    
-    // Cost A
     costA,
     theoreticalCostA,
     actualProfitA,
-    
-    // Cost B (Auto-Calculated)
     costB,
-    computedCostB,
-    
-    // Odds A & B (Auto-Calculated)
+    theoreticalCostB,
+    computedProfitB,
     oddsA,
     computedOddsA,
     oddsB,
     computedOddsB,
-
     setPlay,
     deltaProfit
   }

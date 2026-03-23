@@ -196,7 +196,7 @@ const isNotFoundNumber = computed(() => {
             </div>
             <div class="result-row highlight-row">
               <label>當前利潤</label>
-              <span class="num" :class="actualProfitA >= 0 ? 'profit-pos' : 'profit-neg'">
+              <span class="num" :class="actualProfitA >= 0 ? 'profit-pos' : 'text-danger'">
                 {{ fmtNum(actualProfitA, 4) }}%
               </span>
             </div>
@@ -251,7 +251,9 @@ const isNotFoundNumber = computed(() => {
               </div>
               <div class="data-row highlight-row">
                  <label>當前利潤</label>
-                 <span class="num profit-pos">{{ fmtNum(computedProfitB, 4) }}%</span>
+                 <span class="num" :class="computedProfitB >= 0 ? 'profit-pos' : 'text-danger'">
+                   {{ fmtNum(computedProfitB, 4) }}%
+                 </span>
               </div>
           </div>
         </div>
@@ -288,7 +290,9 @@ const isNotFoundNumber = computed(() => {
           <div class="result-section flex-grow-end">
             <div class="data-row highlight-row">
               <label>當前利潤</label>
-              <span class="num profit-pos">{{ fmtNum(computedOddsA.profit, 4) }}%</span>
+              <span class="num" :class="computedOddsA.profit >= 0 ? 'profit-pos' : 'text-danger'">
+                {{ fmtNum(computedOddsA.profit, 4) }}%
+              </span>
             </div>
           </div>
         </div>
@@ -325,7 +329,9 @@ const isNotFoundNumber = computed(() => {
           <div class="result-section flex-grow-end">
             <div class="data-row highlight-row">
               <label>當前利潤</label>
-              <span class="num profit-pos">{{ fmtNum(computedOddsB.profit, 4) }}%</span>
+              <span class="num" :class="computedOddsB.profit >= 0 ? 'profit-pos' : 'text-danger'">
+                {{ fmtNum(computedOddsB.profit, 4) }}%
+              </span>
             </div>
           </div>
         </div>
@@ -430,6 +436,8 @@ const isNotFoundNumber = computed(() => {
   font-size: 1.5rem;
 }
 .warning { color: var(--warning-color) !important; }
+.profit-pos { color: var(--success-color, #4ade80); }
+.text-danger { color: var(--danger-color, #ef4444); font-weight: bold; }
 
 .markets-grid {
   display: grid;

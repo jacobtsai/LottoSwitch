@@ -63,7 +63,8 @@ export function useOddsCalculator(initialPlay) {
     isSyncingB = true
     
     const theoB = calcTheoCost(costB.value.givenOdds, costB.value.subGivenOdds)
-    const targetProfit = new Decimal(actualProfitA.value).plus(new Decimal(costB.value.additionalProfit || 0).times(100))
+    const multiplier = new Decimal(costB.value.additionalProfit || 0).dividedBy(100)
+    const targetProfit = new Decimal(actualProfitA.value).times(new Decimal(1).plus(multiplier))
     const newCost = targetProfit.plus(theoB)
     
     costB.value.cost = newCost.toDecimalPlaces(4).toNumber()
@@ -89,8 +90,13 @@ export function useOddsCalculator(initialPlay) {
     const theoB = calcTheoCost(costB.value.givenOdds, costB.value.subGivenOdds)
     const currentActualProfitB = new Decimal(newCost).minus(theoB)
     
-    // 反向倒推出這個操作製造了多少利潤差額，寫入 additionalProfit 吸收
-    const newAddProfit = currentActualProfitB.minus(actualProfitA.value).dividedBy(100)
+    // 反向倒推出這個操作製造了多少利潤百分比，寫入 additionalProfit 吸收
+    let newAddProfit = new Decimal(0)
+    if (actualProfitA.value !== 0) {
+      newAddProfit = currentActualProfitB.dividedBy(actualProfitA.value).minus(1).times(100)
+    } else {
+      newAddProfit = new Decimal(costB.value.additionalProfit || 0)
+    }
     // 預防浮點數無限連鎖更新
     if (new Decimal(costB.value.additionalProfit || 0).minus(newAddProfit).abs().greaterThan(0.000001)) {
       costB.value.additionalProfit = newAddProfit.toDecimalPlaces(6).toNumber()

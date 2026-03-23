@@ -11,14 +11,13 @@ const currentPlays = computed(() => allData[selectedGameName.value] || [])
 
 const selectedPlayValue = ref(null)
 const manualNumberInput = ref('')
-const requiredCatForNumber = ref(null) // e.g., '台號'
+const requiredCatForNumber = ref(null)
 
 // Grouping structure for Multiselect
 const groupedOptions = computed(() => {
   const groups = {}
   
   currentPlays.value.forEach((p, idx) => {
-    // 屏除「部份遊戲沒有『特碼』的玩法（無總次數且無機率）」
     if ((p.baseData.totalCount === 0 || p.baseData.totalCount === null) && p.baseData.theoreticalOdds === 0) return
 
     let cat = p.category || '一般'
@@ -30,7 +29,6 @@ const groupedOptions = computed(() => {
     
     if (isNumInput) {
       if (groups[cat].options.length === 0) {
-        // 只留一個代表性的入口放入下拉
         groups[cat].options.push({ value: `NUM_INPUT_${cat}`, label: `【手動指定號碼】 ${cat}` })
       }
     } else {
@@ -62,7 +60,7 @@ watch(selectedPlayValue, (val) => {
 
   if (typeof val === 'string' && val.startsWith('NUM_INPUT_')) {
     requiredCatForNumber.value = val.replace('NUM_INPUT_', '')
-    manualNumberInput.value = '' // 清空讓玩家準備輸入
+    manualNumberInput.value = ''
   } else {
     requiredCatForNumber.value = null
     const targetPlay = currentPlays.value[val]
@@ -105,7 +103,6 @@ const isNotFoundNumber = computed(() => {
         </div>
         <div class="form-group mb-0 group-select-box">
           <label>指定分類與玩法</label>
-          <!-- 群組階層樹狀下拉單 -->
           <Multiselect
             v-model="selectedPlayValue"
             :options="groupedOptions"
@@ -118,7 +115,6 @@ const isNotFoundNumber = computed(() => {
     </header>
 
     <main class="main-content">
-      <!-- 若選中台號，強迫卡特尾輸入框 -->
       <div v-if="requiredCatForNumber" class="glass-panel manual-num-panel mb-4">
          <h2>{{ requiredCatForNumber }} - 請輸入欲查詢號碼</h2>
          <input type="text" v-model="manualNumberInput" class="large-input" placeholder="例如: 01, 88...">
@@ -126,7 +122,6 @@ const isNotFoundNumber = computed(() => {
          <p v-else-if="manualNumberInput" class="success-msg">✅ 載入成功！目前顯示號碼 {{ manualNumberInput }} 數據</p>
       </div>
 
-      <!-- 基礎資料 -->
       <section class="base-data glass-panel" v-if="play && !isNotFoundNumber">
         <h2 class="section-title">原始邏輯數值 (Zero-sum Base) - [{{ play.category }}] {{ play.playType }}</h2>
         <div class="data-grid">
@@ -155,13 +150,14 @@ const isNotFoundNumber = computed(() => {
         </div>
       </section>
 
-      <!-- 變盤引擎操作區 (4 Columns) -->
       <section class="markets-grid" v-if="play && !isNotFoundNumber">
         <!-- ================= COST A (MASTER) ================= -->
         <div class="market-panel glass-panel master-panel">
           <div class="panel-header">
-            <h3>成本 A 盤 <span class="badge badge-master">Master 主控</span></h3>
-            <p class="desc">高退水盤口。變動此處將即時連動其他三盤。</p>
+            <div class="header-top">
+              <h3>成本 A 盤 <span class="badge badge-master">Master 主控</span></h3>
+            </div>
+            <p class="desc">高退水盤口。此處數值將即刻連動其他三盤。</p>
           </div>
           
           <div class="form-section">
@@ -175,7 +171,7 @@ const isNotFoundNumber = computed(() => {
             </div>
             
             <div class="form-group flex-group">
-              <label>退水成本連動</label>
+              <label>退水成本設定 (連動互鎖)</label>
               <div class="split-inputs">
                 <div>
                   <small>給定退水 (Rebate)</small>
@@ -191,28 +187,36 @@ const isNotFoundNumber = computed(() => {
 
           <div class="result-section flex-grow-end">
             <div class="result-row">
+              <label>驅動偏移基準 (Delta)</label>
+              <span class="num highlight">{{ deltaProfit > 0 ? '+' : '' }}{{ fmtNum(deltaProfit, 4) }}%</span>
+            </div>
+            <div class="result-row separator">
               <label>理論成本 (Expected)</label>
               <span class="num">{{ fmtNum(theoreticalCostA) }}</span>
             </div>
             <div class="result-row highlight-row">
-              <label>實際利潤 (%)</label>
+              <label>當前利潤</label>
               <span class="num" :class="actualProfitA >= 0 ? 'profit-pos' : 'profit-neg'">
                 {{ fmtNum(actualProfitA, 4) }}%
               </span>
             </div>
-            <div class="result-row">
-              <label>驅動用偏移基準 (Delta)</label>
-              <span class="num highlight">{{ deltaProfit > 0 ? '+' : '' }}{{ fmtNum(deltaProfit, 4) }}%</span>
-            </div>
-            <!-- User requested to remove Additional Profit from Cost A -->
           </div>
         </div>
 
         <!-- ================= COST B ================= -->
         <div class="market-panel glass-panel slave-panel master-b-panel">
           <div class="panel-header">
-            <h3>成本 B 盤 <span class="badge badge-slave">進階干預</span></h3>
-            <p class="desc">預設隨 A 盤利潤連動，也可透過手動填入直接改變 B 盤退水</p>
+            <div class="header-top">
+              <h3>成本 B 盤 <span class="badge badge-slave">進階干預</span></h3>
+              <div class="top-right-input">
+                <label>疊加設定</label>
+                <div class="input-suffix small-input">
+                  <input type="number" v-model.number="costB.additionalProfit" step="0.1">
+                  <span>%</span>
+                </div>
+              </div>
+            </div>
+            <p class="desc">維持追隨 A 盤利潤，或手動干預自動反推補足差額。</p>
           </div>
           
           <div class="form-section">
@@ -229,11 +233,11 @@ const isNotFoundNumber = computed(() => {
               <label>反算與手動退水覆蓋</label>
               <div class="split-inputs">
                 <div>
-                  <small>給定退水 (可編輯)</small>
+                  <small>給定退水 (可手改)</small>
                   <input type="number" v-model.number="costB.rebate" step="0.1" class="border-warning">
                 </div>
                 <div>
-                  <small>給定成本 (Cost)</small>
+                  <small>給定成本</small>
                   <input type="number" v-model.number="costB.cost" step="0.1">
                 </div>
               </div>
@@ -246,28 +250,29 @@ const isNotFoundNumber = computed(() => {
                 <span class="num">{{ fmtNum(theoreticalCostB) }}</span>
               </div>
               <div class="data-row highlight-row">
-                 <label>當前 B 盤利潤</label>
+                 <label>當前利潤</label>
                  <span class="num profit-pos">{{ fmtNum(computedProfitB, 4) }}%</span>
               </div>
-            <hr class="divider">
-            <div class="form-group">
-              <label>利潤疊加 (被動推算 / 或手動干預)</label>
-              <div class="input-suffix">
-                <input type="number" v-model.number="costB.additionalProfit" step="0.1">
-                <span>%</span>
-              </div>
-            </div>
           </div>
         </div>
 
         <!-- ================= ODDS A ================= -->
         <div class="market-panel glass-panel slave-panel">
           <div class="panel-header">
-            <h3>賠率 A 盤 <span class="badge badge-slave">連動</span></h3>
-            <p class="desc">現金玩法。隨 A 盤利潤變化，自動反推新的派彩賠率。</p>
+            <div class="header-top">
+              <h3>賠率 A 盤 <span class="badge badge-slave">連動派彩</span></h3>
+              <div class="top-right-input">
+                <label>疊加設定</label>
+                <div class="input-suffix small-input">
+                  <input type="number" v-model.number="oddsA.additionalProfit" step="0.1">
+                  <span>%</span>
+                </div>
+              </div>
+            </div>
+            <p class="desc">現金玩法。隨 A 盤利潤推算派彩賠率。</p>
           </div>
           
-          <div class="readonly-section">
+          <div class="form-section">
             <div class="data-box mb-4">
               <div class="data-row box-highlight">
                 <label>反推現金最高賠率</label>
@@ -278,25 +283,16 @@ const isNotFoundNumber = computed(() => {
                 <span class="num warning">{{ fmtNum(computedOddsA.subGivenOdds) }}</span>
               </div>
             </div>
-            
-            <div class="data-row">
-              <label>目標理論成本</label>
-              <span class="num">{{ fmtNum(computedOddsA.theoreticalCost) }}</span>
-            </div>
-            <div class="data-row">
-              <label>鎖定目標利潤</label>
-              <span class="num profit-pos">{{ fmtNum(computedOddsA.profit, 4) }}%</span>
-            </div>
           </div>
 
           <div class="result-section flex-grow-end">
-            <hr class="divider">
-            <div class="form-group">
-              <label>利潤疊加 (自訂溢價)</label>
-              <div class="input-suffix">
-                <input type="number" v-model.number="oddsA.additionalProfit" step="0.1">
-                <span>%</span>
-              </div>
+            <div class="data-row separator">
+              <label>目標理論成本</label>
+              <span class="num">{{ fmtNum(computedOddsA.theoreticalCost) }}</span>
+            </div>
+            <div class="data-row highlight-row">
+              <label>當前利潤</label>
+              <span class="num profit-pos">{{ fmtNum(computedOddsA.profit, 4) }}%</span>
             </div>
           </div>
         </div>
@@ -304,11 +300,20 @@ const isNotFoundNumber = computed(() => {
         <!-- ================= ODDS B ================= -->
         <div class="market-panel glass-panel slave-panel">
           <div class="panel-header">
-            <h3>賠率 B 盤 <span class="badge badge-slave">連動</span></h3>
-            <p class="desc">現金玩法。隨 A 盤利潤變化，自動反推新的派彩賠率。</p>
+            <div class="header-top">
+              <h3>賠率 B 盤 <span class="badge badge-slave">連動派彩</span></h3>
+              <div class="top-right-input">
+                <label>疊加設定</label>
+                <div class="input-suffix small-input">
+                  <input type="number" v-model.number="oddsB.additionalProfit" step="0.1">
+                  <span>%</span>
+                </div>
+              </div>
+            </div>
+            <p class="desc">現金玩法。隨 A 盤利潤推算派彩賠率。</p>
           </div>
           
-          <div class="readonly-section">
+          <div class="form-section">
             <div class="data-box mb-4">
               <div class="data-row box-highlight">
                 <label>反推現金最高賠率</label>
@@ -319,25 +324,16 @@ const isNotFoundNumber = computed(() => {
                 <span class="num warning">{{ fmtNum(computedOddsB.subGivenOdds) }}</span>
               </div>
             </div>
-            
-            <div class="data-row">
-              <label>目標理論成本</label>
-              <span class="num">{{ fmtNum(computedOddsB.theoreticalCost) }}</span>
-            </div>
-            <div class="data-row">
-              <label>鎖定目標利潤</label>
-              <span class="num profit-pos">{{ fmtNum(computedOddsB.profit, 4) }}%</span>
-            </div>
           </div>
 
           <div class="result-section flex-grow-end">
-            <hr class="divider">
-            <div class="form-group">
-              <label>利潤疊加 (自訂溢價)</label>
-              <div class="input-suffix">
-                <input type="number" v-model.number="oddsB.additionalProfit" step="0.1">
-                <span>%</span>
-              </div>
+            <div class="data-row separator">
+              <label>目標理論成本</label>
+              <span class="num">{{ fmtNum(computedOddsB.theoreticalCost) }}</span>
+            </div>
+            <div class="data-row highlight-row">
+              <label>當前利潤</label>
+              <span class="num profit-pos">{{ fmtNum(computedOddsB.profit, 4) }}%</span>
             </div>
           </div>
         </div>
@@ -458,6 +454,36 @@ const isNotFoundNumber = computed(() => {
 .panel-header {
   margin-bottom: 1.5rem;
 }
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.top-right-input {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+.top-right-input label {
+  font-size: 0.7rem;
+  color: var(--accent-color);
+  text-transform: uppercase;
+}
+.small-input {
+  width: 90px;
+  height: 28px;
+}
+.small-input input {
+  font-size: 0.85rem;
+  text-align: right;
+  padding-right: 0.25rem;
+}
+.small-input span {
+  padding: 0 0.5rem;
+  font-size: 0.75rem;
+}
+
 .panel-header h3 {
   display: flex;
   align-items: center;
@@ -527,7 +553,6 @@ const isNotFoundNumber = computed(() => {
   flex: 1;
 }
 .input-suffix span {
-  padding: 0 0.75rem;
   color: var(--text-secondary);
   font-family: 'Roboto Mono', monospace;
   background: rgba(255, 255, 255, 0.05);

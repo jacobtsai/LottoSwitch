@@ -118,13 +118,17 @@ export function useOddsCalculator(initialPlay) {
     
     let subGiven = origConfig.subGivenOdds
     let theoCostFromSub = 0
-    if (subGiven !== null && b.subTheoreticalOdds) {
+    if (subGiven !== null && b.subProb && b.subProb > 0) {
+      theoCostFromSub = subGiven * b.subProb
+    } else if (subGiven !== null && b.subTheoreticalOdds && b.subTheoreticalOdds > 0) {
       theoCostFromSub = (subGiven / b.subTheoreticalOdds) * 100
     }
     
     let mainGiven = 0
-    if (b.theoreticalOdds > 0) {
-      const remainingTheo = targetTheoCost - theoCostFromSub
+    const remainingTheo = targetTheoCost - theoCostFromSub
+    if (b.prob > 0) {
+      mainGiven = remainingTheo / b.prob
+    } else if (b.theoreticalOdds > 0) {
       mainGiven = (remainingTheo / 100) * b.theoreticalOdds
     }
 

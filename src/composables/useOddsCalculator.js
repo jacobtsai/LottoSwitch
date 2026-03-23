@@ -23,6 +23,9 @@ export function useOddsCalculator(initialPlay) {
   const oddsA = ref({ additionalProfit: play.value.oddsA.additionalProfit || 0 })
   const oddsB = ref({ additionalProfit: 20 })
 
+  // 內部數學真值基準點（用於消除 CSV CSV 四捨五入造成的字串落差）
+  const initialActualProfitA = ref(0)
+
   const calcTheoCost = (given, subGiven) => {
     let cost = 0
     const b = play.value.baseData
@@ -41,7 +44,9 @@ export function useOddsCalculator(initialPlay) {
 
   const theoreticalCostA = computed(() => calcTheoCost(costA.value.givenOdds, costA.value.subGivenOdds))
   const actualProfitA = computed(() => costA.value.cost - theoreticalCostA.value)
-  const deltaProfit = computed(() => actualProfitA.value - ((play.value.costA.baseProfit || 0) * 100))
+  
+  // Delta (偏移基準) 現在嚴格對齊「引擎初始化時算出的數學真值」，消除與 CSV 字串的四捨五入誤差
+  const deltaProfit = computed(() => actualProfitA.value - initialActualProfitA.value)
 
   const theoreticalCostB = computed(() => calcTheoCost(costB.value.givenOdds, costB.value.subGivenOdds))
 
@@ -145,6 +150,9 @@ export function useOddsCalculator(initialPlay) {
     
     oddsA.value.additionalProfit = newPlay.oddsA.additionalProfit || 0
     oddsB.value.additionalProfit = 20
+
+    // 初始化當下，立即擷取引擎端計算出的絕對精準利潤，做為日後 Delta 偏移的基底
+    initialActualProfitA.value = newPlay.costA.baseCost - calcTheoCost(newPlay.costA.givenOdds, newPlay.costA.subGivenOdds)
 
     nextTick(() => { isSyncingB = false })
   }

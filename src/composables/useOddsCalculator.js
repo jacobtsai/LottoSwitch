@@ -92,7 +92,7 @@ export function useOddsCalculator(initialPlay) {
     const origConfig = play.value[baseDataKey]
     
     const baseP = origConfig.baseProfit || 0
-    const addP = additionalProfitRef.value || 0
+    const addP = additionalProfitRef.value.additionalProfit || 0
     const targetProfit = (baseP * 100) + deltaProfit.value + (addP * 100)
     const targetTheoCost = 100 - targetProfit
     

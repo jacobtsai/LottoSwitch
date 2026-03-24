@@ -115,6 +115,17 @@ watch(manualNumberInput, (newNum) => {
 const fmtNum = (val, decimals = 2) => val !== null && val !== undefined && !isNaN(val) ? Number(val).toFixed(decimals) : '-'
 const fmtPerc = (val) => val !== null && val !== undefined && !isNaN(val) ? (val * 100).toFixed(4) + '%' : '-'
 
+const fmtOdds = (val) => {
+  if (val === null || val === undefined || isNaN(val)) return '-'
+  const num = Number(val)
+  const absNum = Math.abs(num)
+  const sign = num < 0 ? -1 : 1
+  
+  if (absNum >= 100) return (sign * Math.floor(absNum)).toFixed(0)
+  if (absNum >= 10) return (sign * (Math.floor(absNum * 10) / 10)).toFixed(1)
+  return (sign * (Math.floor(absNum * 100) / 100)).toFixed(2)
+}
+
 const isNotFoundNumber = computed(() => {
   return requiredCatForNumber.value && manualNumberInput.value && play.value?.playType !== manualNumberInput.value.trim()
 })
@@ -370,7 +381,7 @@ const isNotFoundNumber = computed(() => {
               <div class="data-row box-highlight">
                 <label>反推現金最高賠率</label>
                 <div class="val-col">
-                  <span class="num highlight" :class="{ 'text-danger': computedOddsA.givenOdds < 0 }">{{ fmtNum(computedOddsA.givenOdds) }}</span>
+                  <span class="num highlight" :class="{ 'text-danger': computedOddsA.givenOdds < 0 }">{{ fmtOdds(computedOddsA.givenOdds) }}</span>
                   <small class="formula-hint">(100 - 利潤 - 副獎成本) ÷ 100 × 主獎理論賠率</small>
                 </div>
               </div>
@@ -432,7 +443,7 @@ const isNotFoundNumber = computed(() => {
               <div class="data-row box-highlight">
                 <label>反推現金最高賠率</label>
                 <div class="val-col">
-                  <span class="num highlight" :class="{ 'text-danger': computedOddsB.givenOdds < 0 }">{{ fmtNum(computedOddsB.givenOdds) }}</span>
+                  <span class="num highlight" :class="{ 'text-danger': computedOddsB.givenOdds < 0 }">{{ fmtOdds(computedOddsB.givenOdds) }}</span>
                   <small class="formula-hint">(100 - 利潤 - 副獎成本) ÷ 100 × 主獎理論賠率</small>
                 </div>
               </div>

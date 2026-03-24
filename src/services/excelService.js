@@ -1,4 +1,5 @@
 import Papa from 'papaparse';
+import Decimal from 'decimal.js';
 
 const GAMES = [
   { name: '六合彩', gid: '49076286' },
@@ -50,10 +51,12 @@ export async function fetchAllGameData() {
           totalCount,
           winCount,
           prob: totalCount > 0 ? (winCount / totalCount) : (parseSafePercent(row[5]) || 0),
-          theoreticalOdds: parseSafeFloat(row[6]) || 0,
+          // 理論賠率採 6 位捨去
+          theoreticalOdds: new Decimal(parseSafeFloat(row[6]) || 0).toDecimalPlaces(6, Decimal.ROUND_DOWN).toNumber(),
           subWinCount,
           subProb: (totalCount > 0 && subWinCount !== null) ? (subWinCount / totalCount) : parseSafePercent(row[8]),
-          subTheoreticalOdds: parseSafeFloat(row[9])
+          // 副獎理論賠率亦採 6 位捨去
+          subTheoreticalOdds: row[9] ? new Decimal(parseSafeFloat(row[9])).toDecimalPlaces(6, Decimal.ROUND_DOWN).toNumber() : null
         },
         costA: {
           givenOdds: parseSafeFloat(row[21]) || 0,

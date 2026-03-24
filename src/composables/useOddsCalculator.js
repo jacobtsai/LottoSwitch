@@ -55,12 +55,12 @@ export function useOddsCalculator(initialPlay) {
   const theoreticalCostA = computed(() => calcTheoCost(costA.value.givenOdds, costA.value.subGivenOdds))
   const actualProfitA = computed(() => {
     if (!theoreticalCostA.value) return 0
-    return new Decimal(costA.value.cost).minus(theoreticalCostA.value).toDecimalPlaces(6, Decimal.ROUND_DOWN).toNumber()
+    return new Decimal(costA.value.cost).minus(theoreticalCostA.value).toDecimalPlaces(4, Decimal.ROUND_DOWN).toNumber()
   })
   
   // Delta (偏移基準) 現在嚴格對齊「引擎初始化時算出的數學真值」，消除與 CSV 字串的四捨五入誤差
   const deltaProfit = computed(() => {
-    return new Decimal(actualProfitA.value).minus(initialActualProfitA.value).toDecimalPlaces(6, Decimal.ROUND_DOWN).toNumber()
+    return new Decimal(actualProfitA.value).minus(initialActualProfitA.value).toDecimalPlaces(4, Decimal.ROUND_DOWN).toNumber()
   })
 
   const theoreticalCostB = computed(() => calcTheoCost(costB.value.givenOdds, costB.value.subGivenOdds))
@@ -75,7 +75,7 @@ export function useOddsCalculator(initialPlay) {
     
     const theoB = calcTheoCost(costB.value.givenOdds, costB.value.subGivenOdds)
     const multiplier = new Decimal(costB.value.additionalProfit || 0).dividedBy(100)
-    const targetProfit = new Decimal(actualProfitA.value).times(new Decimal(1).plus(multiplier)).toDecimalPlaces(6, Decimal.ROUND_DOWN)
+    const targetProfit = new Decimal(actualProfitA.value).times(new Decimal(1).plus(multiplier)).toDecimalPlaces(4, Decimal.ROUND_DOWN)
     const newCost = targetProfit.plus(theoB)
     
     // 成本 B 盤精度標準化為 3 位，退水採捨去
@@ -117,34 +117,34 @@ export function useOddsCalculator(initialPlay) {
     }
     // 預防浮點數無限連鎖更新
     if (new Decimal(costB.value.additionalProfit || 0).minus(newAddProfit).abs().greaterThan(0.000001)) {
-      costB.value.additionalProfit = newAddProfit.toDecimalPlaces(6, Decimal.ROUND_DOWN).toNumber()
+      costB.value.additionalProfit = newAddProfit.toDecimalPlaces(4, Decimal.ROUND_DOWN).toNumber()
     }
     
     setTimeout(() => { isSyncingB = false }, 0)
   })
   
   const computedProfitB = computed(() => {
-    return new Decimal(costB.value.cost).minus(theoreticalCostB.value).toDecimalPlaces(6, Decimal.ROUND_DOWN).toNumber()
+    return new Decimal(costB.value.cost).minus(theoreticalCostB.value).toDecimalPlaces(4, Decimal.ROUND_DOWN).toNumber()
   })
 
   // 現金盤 A/B (單向防禦機制)
   const oddsA_TargetProfit = computed(() => {
     const baseP = play.value.oddsA.baseProfit || 0
-    // 利潤基準亦需標準化 (6位捨去)
-    return new Decimal(baseP).times(100).plus(deltaProfit.value).toDecimalPlaces(6, Decimal.ROUND_DOWN).toNumber()
+    // 利潤基準 (百分比值) 採 4 位捨去，即絕對值 6 位
+    return new Decimal(baseP).times(100).plus(deltaProfit.value).toDecimalPlaces(4, Decimal.ROUND_DOWN).toNumber()
   })
 
   // 賠率 B 盤是以 A 盤為基準，疊加其百分比 (例如 20% 即為 A 盤利潤 * 1.2)
   const oddsB_TargetProfit = computed(() => {
     const multiplier = new Decimal(oddsB.value.additionalProfit || 0).dividedBy(100)
-    return new Decimal(oddsA_TargetProfit.value).times(new Decimal(1).plus(multiplier)).toDecimalPlaces(6, Decimal.ROUND_DOWN).toNumber()
+    return new Decimal(oddsA_TargetProfit.value).times(new Decimal(1).plus(multiplier)).toDecimalPlaces(4, Decimal.ROUND_DOWN).toNumber()
   })
 
   const calcCashOddsFromProfit = (baseDataKey, targetProfit) => {
     const b = play.value.baseData
     const origConfig = play.value[baseDataKey]
     
-    const targetTheoCost = new Decimal(100).minus(new Decimal(targetProfit).toDecimalPlaces(6, Decimal.ROUND_DOWN))
+    const targetTheoCost = new Decimal(100).minus(new Decimal(targetProfit).toDecimalPlaces(4, Decimal.ROUND_DOWN))
     
     let subGiven = origConfig.subGivenOdds
     let theoCostFromSub = new Decimal(0)
@@ -188,8 +188,8 @@ export function useOddsCalculator(initialPlay) {
     
     oddsB.value.additionalProfit = 20
 
-    // 初始化當下，立即擷取引擎端計算出的絕對精準利潤，並標準化為 6 位小數無條件捨去
-    initialActualProfitA.value = new Decimal(newPlay.costA.baseCost).minus(calcTheoCost(newPlay.costA.givenOdds, newPlay.costA.subGivenOdds)).toDecimalPlaces(6, Decimal.ROUND_DOWN).toNumber()
+    // 初始化當下，立即擷取引擎端計算出的絕對精準利潤，並標準化為百分比 4 位捨去
+    initialActualProfitA.value = new Decimal(newPlay.costA.baseCost).minus(calcTheoCost(newPlay.costA.givenOdds, newPlay.costA.subGivenOdds)).toDecimalPlaces(4, Decimal.ROUND_DOWN).toNumber()
 
     nextTick(() => { isSyncingB = false })
   }

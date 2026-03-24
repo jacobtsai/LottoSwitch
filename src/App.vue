@@ -1,13 +1,17 @@
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
-import allData from './assets/data.json'
+import { ref, computed, watch, nextTick, onMounted } from 'vue'
+import { fetchAllGameData } from './services/excelService'
 import { useOddsCalculator } from './composables/useOddsCalculator'
 import Multiselect from '@vueform/multiselect'
 import '@vueform/multiselect/themes/default.css'
 
-const gamesList = Object.keys(allData)
-const selectedGameName = ref(gamesList[0])
-const currentPlays = computed(() => allData[selectedGameName.value] || [])
+const allData = ref({})
+const isLoading = ref(true)
+const fetchError = ref(null)
+
+const gamesList = computed(() => Object.keys(allData.value))
+const selectedGameName = ref('')
+const currentPlays = computed(() => allData.value[selectedGameName.value] || [])
 
 const selectedPlayValue = ref(null)
 const manualNumberInput = ref('')
@@ -39,7 +43,36 @@ const groupedOptions = computed(() => {
 })
 
 // Initialize Engine with a safe fallback
-const engine = useOddsCalculator(currentPlays.value[1] || currentPlays.value[0])
+const dummyPlay = {
+  category: '', playType: '',
+  baseData: { totalCount: 0, winCount: 0, prob: 0, theoreticalOdds: 0 },
+  costA: { givenOdds: 0, baseCost: 0, baseRebate: 0, baseProfit: 0 },
+  costB: { givenOdds: 0, baseCost: 0, baseRebate: 0, baseProfit: 0 },
+  oddsA: { givenOdds: 0, baseProfit: 0 },
+  oddsB: { givenOdds: 0, baseProfit: 0 }
+}
+const engine = useOddsCalculator(dummyPlay)
+
+async function loadData() {
+  isLoading.value = true
+  fetchError.value = null
+  try {
+    const data = await fetchAllGameData()
+    allData.value = data
+    if (gamesList.value.length > 0 && !selectedGameName.value) {
+      selectedGameName.value = gamesList.value[0]
+    }
+  } catch (err) {
+    console.error(err)
+    fetchError.value = '資料載入失敗，請檢查網路連線或試算表權限。'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+onMounted(() => {
+  loadData()
+})
 
 const {
   play,
@@ -95,6 +128,10 @@ const isNotFoundNumber = computed(() => {
         <p class="subtitle">單一錨點連動引擎 (Master-Slave Architecture)</p>
       </div>
       <div class="controls">
+        <button class="sync-btn" @click="loadData" :disabled="isLoading" :class="{ 'spinning': isLoading }">
+          <span class="icon">🔄</span>
+          <span class="text">{{ isLoading ? '同步中...' : '同步數值' }}</span>
+        </button>
         <div class="form-group mb-0">
           <label>選擇遊戲</label>
           <select class="native-select" v-model="selectedGameName">
@@ -113,6 +150,25 @@ const isNotFoundNumber = computed(() => {
         </div>
       </div>
     </header>
+
+    <transition name="fade">
+      <div v-if="isLoading" class="loading-overlay">
+        <div class="loader-box">
+          <div class="spinner"></div>
+          <p>正在從 Excel 獲取最新資料...</p>
+        </div>
+      </div>
+    </transition>
+
+    <transition name="fade">
+      <div v-if="fetchError" class="error-overlay">
+        <div class="error-box">
+          <h3>⚠️ Data Fetch Error</h3>
+          <p>{{ fetchError }}</p>
+          <button @click="loadData">重試 (Retry)</button>
+        </div>
+      </div>
+    </transition>
 
     <main class="main-content">
       <!-- (號碼輸入區已移至成本 A 盤內) -->
@@ -453,8 +509,9 @@ const isNotFoundNumber = computed(() => {
 
 .controls {
   display: flex;
+  align-items: center;
   gap: 1rem;
-  width: 500px;
+  width: 650px;
 }
 
 .controls .form-group {
@@ -467,6 +524,86 @@ const isNotFoundNumber = computed(() => {
 .native-select {
   height: 40px;
 }
+
+/* Sync Button */
+.sync-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: var(--accent-color);
+  padding: 0 1rem;
+  height: 40px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  margin-top: 1.25rem; /* Match label height alignment */
+}
+.sync-btn:hover:not(:disabled) {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: var(--accent-color);
+  transform: translateY(-2px);
+}
+.sync-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.spinning .icon {
+  display: inline-block;
+  animation: rotate 1.5s linear infinite;
+}
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Overlays */
+.loading-overlay, .error-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(10px);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.loader-box, .error-box {
+  text-align: center;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 3rem;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 3px solid rgba(56, 189, 248, 0.1);
+  border-top-color: var(--accent-color);
+  border-radius: 50%;
+  animation: rotate 1s linear infinite;
+  margin: 0 auto 1.5rem;
+}
+.error-box h3 { color: var(--danger-color); margin-bottom: 1rem; }
+.error-box button {
+  margin-top: 1.5rem;
+  padding: 0.75rem 2rem;
+  background: var(--accent-color);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fade-enter-active, .fade-leave-active { transition: opacity 0.5s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 
 .mb-0 { margin-bottom: 0 !important; }
 .mb-4 { margin-bottom: 1.5rem !important; }

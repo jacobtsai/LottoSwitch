@@ -140,7 +140,7 @@ export function useOddsCalculator(initialPlay) {
     }
 
     return {
-      givenOdds: mainGiven.toDecimalPlaces(2).toNumber(),
+      givenOdds: mainGiven.toDecimalPlaces(6).toNumber(),
       subGivenOdds: subGiven,
       profit: targetProfit,
       theoreticalCost: targetTheoCost.toNumber()

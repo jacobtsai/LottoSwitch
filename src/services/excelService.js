@@ -39,16 +39,20 @@ export async function fetchAllGameData() {
       const rawCat = row[1]?.trim();
       if (rawCat) currentCategory = rawCat;
       
+      const totalCount = parseInt(row[3]?.replace(/,/g, '') || '0', 10);
+      const winCount = parseInt(row[4]?.replace(/,/g, '') || '0', 10);
+      const subWinCount = row[7] ? parseInt(row[7].replace(/,/g, '')) : null;
+
       return {
         category: currentCategory,
         playType: row[2]?.trim() || '',
         baseData: {
-          totalCount: parseInt(row[3]?.replace(/,/g, '') || '0', 10),
-          winCount: parseInt(row[4]?.replace(/,/g, '') || '0', 10),
-          prob: parseSafeFloat(row[5]) || 0,
+          totalCount,
+          winCount,
+          prob: totalCount > 0 ? (winCount / totalCount) : (parseSafePercent(row[5]) || 0),
           theoreticalOdds: parseSafeFloat(row[6]) || 0,
-          subWinCount: row[7] ? parseInt(row[7].replace(/,/g, '')) : null,
-          subProb: parseSafeFloat(row[8]),
+          subWinCount,
+          subProb: (totalCount > 0 && subWinCount !== null) ? (subWinCount / totalCount) : parseSafePercent(row[8]),
           subTheoreticalOdds: parseSafeFloat(row[9])
         },
         costA: {

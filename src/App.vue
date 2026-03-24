@@ -255,11 +255,11 @@ const isNotFoundNumber = computed(() => {
             <template v-if="!isNotFoundNumber">
             <div class="form-group flex-group">
               <label>給定賠率</label>
-              <input type="number" v-model.number="costA.givenOdds" step="0.1" class="border-odds">
+              <input type="number" v-model.number="costA.givenOdds" step="0.1" class="border-odds" @focus="$event.target.select()">
             </div>
             <div class="form-group flex-group" v-if="costA.subGivenOdds !== null">
               <label>副獎給定賠率</label>
-              <input type="number" v-model.number="costA.subGivenOdds" step="0.1" class="border-odds">
+              <input type="number" v-model.number="costA.subGivenOdds" step="0.1" class="border-odds" @focus="$event.target.select()">
             </div>
             
             <div class="form-group flex-group">
@@ -267,11 +267,11 @@ const isNotFoundNumber = computed(() => {
               <div class="split-inputs">
                 <div>
                   <small>給定退水 (Rebate)</small>
-                  <input type="number" v-model.number="costA.rebate" step="0.1" class="border-cost">
+                  <input type="number" v-model.number="costA.rebate" step="0.1" class="border-cost" @focus="$event.target.select()">
                 </div>
                 <div>
                   <small>給定成本 (Cost)</small>
-                  <input type="number" v-model.number="costA.cost" step="0.1" class="border-cost">
+                  <input type="number" v-model.number="costA.cost" step="0.1" class="border-cost" @focus="$event.target.select()">
                 </div>
               </div>
             </div>
@@ -313,7 +313,7 @@ const isNotFoundNumber = computed(() => {
               <div class="top-right-input">
                 <label>疊加設定</label>
                 <div class="input-suffix small-input">
-                  <input type="number" v-model.number="costB.additionalProfit" step="0.1" class="border-odds">
+                  <input type="number" v-model.number="costB.additionalProfit" step="0.1" class="border-odds" @focus="$event.target.select()">
                   <span>%</span>
                 </div>
               </div>
@@ -324,11 +324,11 @@ const isNotFoundNumber = computed(() => {
           <div class="form-section">
             <div class="form-group flex-group">
               <label>自訂高賠率目標</label>
-              <input type="number" v-model.number="costB.givenOdds" step="0.1" class="border-odds">
+              <input type="number" v-model.number="costB.givenOdds" step="0.1" class="border-odds" @focus="$event.target.select()">
             </div>
             <div class="form-group flex-group" v-if="costB.subGivenOdds !== null">
               <label>自訂副獎賠率</label>
-              <input type="number" v-model.number="costB.subGivenOdds" step="0.1" class="border-odds">
+              <input type="number" v-model.number="costB.subGivenOdds" step="0.1" class="border-odds" @focus="$event.target.select()">
             </div>
             
             <div class="form-group flex-group mt-3">
@@ -336,11 +336,11 @@ const isNotFoundNumber = computed(() => {
               <div class="split-inputs">
                 <div>
                   <small>給定退水</small>
-                  <input type="number" v-model.number="costB.rebate" step="0.1" class="border-cost">
+                  <input type="number" v-model.number="costB.rebate" step="0.1" class="border-cost" @focus="$event.target.select()">
                 </div>
                 <div>
                   <small>給定成本</small>
-                  <input type="number" v-model.number="costB.cost" step="0.1" class="border-cost">
+                  <input type="number" v-model.number="costB.cost" step="0.1" class="border-cost" @focus="$event.target.select()">
                 </div>
               </div>
             </div>
@@ -430,7 +430,7 @@ const isNotFoundNumber = computed(() => {
               <div class="top-right-input">
                 <label>疊加設定</label>
                 <div class="input-suffix small-input">
-                  <input type="number" v-model.number="oddsB.additionalProfit" step="0.1" class="border-odds">
+                  <input type="number" v-model.number="oddsB.additionalProfit" step="0.1" class="border-odds" @focus="$event.target.select()">
                   <span>%</span>
                 </div>
               </div>

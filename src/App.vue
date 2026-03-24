@@ -282,7 +282,7 @@ const isNotFoundNumber = computed(() => {
             <div class="result-row">
               <label>驅動偏移基準 (Delta)</label>
               <div class="val-col">
-                <span class="num highlight">{{ deltaProfit > 0 ? '+' : '' }}{{ fmtNum(deltaProfit, 4) }}%</span>
+                <span class="num highlight">{{ deltaProfit > 0 ? '+' : '' }}{{ fmtNum(deltaProfit, 6) }}%</span>
                 <small class="formula-hint">當前利潤 - 初始利潤基準</small>
               </div>
             </div>
@@ -297,7 +297,7 @@ const isNotFoundNumber = computed(() => {
               <label>當前利潤</label>
               <div class="val-col">
                 <span class="num" :class="actualProfitA >= 0 ? 'profit-pos' : 'text-danger'">
-                  {{ fmtNum(actualProfitA, 4) }}%
+                  {{ fmtNum(actualProfitA, 6) }}%
                 </span>
                 <small class="formula-hint">給定成本 - 理論成本</small>
               </div>
@@ -336,11 +336,11 @@ const isNotFoundNumber = computed(() => {
               <div class="split-inputs">
                 <div>
                   <small>給定退水</small>
-                  <input type="number" v-model.number="costB.rebate" step="0.1" class="border-cost" @focus="$event.target.select()">
+                  <input type="number" v-model.number="costB.rebate" step="0.001" class="border-cost" @focus="$event.target.select()">
                 </div>
                 <div>
                   <small>給定成本</small>
-                  <input type="number" v-model.number="costB.cost" step="0.1" class="border-cost" @focus="$event.target.select()">
+                  <input type="number" v-model.number="costB.cost" step="0.001" class="border-cost" @focus="$event.target.select()">
                 </div>
               </div>
             </div>
@@ -358,7 +358,7 @@ const isNotFoundNumber = computed(() => {
                  <label>當前利潤</label>
                  <div class="val-col">
                    <span class="num" :class="computedProfitB >= 0 ? 'profit-pos' : 'text-danger'">
-                     {{ fmtNum(computedProfitB, 4) }}%
+                     {{ fmtNum(computedProfitB, 6) }}%
                    </span>
                    <small class="formula-hint">給定成本 - 目標理論成本</small>
                  </div>
@@ -414,7 +414,7 @@ const isNotFoundNumber = computed(() => {
               <label>當前利潤</label>
               <div class="val-col">
                 <span class="num" :class="computedOddsA.profit >= 0 ? 'profit-pos' : 'text-danger'">
-                  {{ fmtNum(computedOddsA.profit, 4) }}%
+                  {{ fmtNum(computedOddsA.profit, 6) }}%
                 </span>
                 <small class="formula-hint">A盤初始利潤 + 偏移差值(Δ)</small>
               </div>
@@ -476,7 +476,7 @@ const isNotFoundNumber = computed(() => {
               <label>當前利潤</label>
               <div class="val-col">
                 <span class="num" :class="computedOddsB.profit >= 0 ? 'profit-pos' : 'text-danger'">
-                  {{ fmtNum(computedOddsB.profit, 4) }}%
+                  {{ fmtNum(computedOddsB.profit, 6) }}%
                 </span>
                 <small class="formula-hint">賠率A當前利潤 × (1 + 疊加%)</small>
               </div>

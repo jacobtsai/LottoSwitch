@@ -35,22 +35,32 @@ export function useOddsCalculator(initialPlay) {
     if (subGiven !== null && b.subTheoreticalOdds && b.subTheoreticalOdds > 0) {
       cost = cost.plus(new Decimal(subGiven).dividedBy(b.subTheoreticalOdds).times(100))
     }
-    return cost.toNumber()
+    return cost.toDecimalPlaces(6, Decimal.ROUND_UP).toNumber()
   }
 
   // A 盤連動 (互鎖)
-  watch(() => costA.value.rebate, (val) => { costA.value.cost = new Decimal(100).minus(val).toDecimalPlaces(4).toNumber() })
-  watch(() => costA.value.cost, (val) => { costA.value.rebate = new Decimal(100).minus(val).toDecimalPlaces(4).toNumber() })
+  watch(() => costA.value.rebate, (val) => {
+    // 退水採捨去 3 位
+    const floorRebate = new Decimal(val).toDecimalPlaces(3, Decimal.ROUND_DOWN).toNumber()
+    if (costA.value.rebate !== floorRebate) costA.value.rebate = floorRebate
+    costA.value.cost = new Decimal(100).minus(floorRebate).toNumber()
+  })
+  watch(() => costA.value.cost, (val) => {
+    // 若動的是成本，則退水由 100 - 成本 並進行捨去 3 位
+    const calcRebate = new Decimal(100).minus(val).toDecimalPlaces(3, Decimal.ROUND_DOWN)
+    costA.value.rebate = calcRebate.toNumber()
+    costA.value.cost = new Decimal(100).minus(calcRebate).toNumber()
+  })
 
   const theoreticalCostA = computed(() => calcTheoCost(costA.value.givenOdds, costA.value.subGivenOdds))
   const actualProfitA = computed(() => {
     if (!theoreticalCostA.value) return 0
-    return new Decimal(costA.value.cost).minus(theoreticalCostA.value).toDecimalPlaces(4).toNumber()
+    return new Decimal(costA.value.cost).minus(theoreticalCostA.value).toDecimalPlaces(6, Decimal.ROUND_DOWN).toNumber()
   })
   
   // Delta (偏移基準) 現在嚴格對齊「引擎初始化時算出的數學真值」，消除與 CSV 字串的四捨五入誤差
   const deltaProfit = computed(() => {
-    return new Decimal(actualProfitA.value).minus(initialActualProfitA.value).toDecimalPlaces(4).toNumber()
+    return new Decimal(actualProfitA.value).minus(initialActualProfitA.value).toDecimalPlaces(6, Decimal.ROUND_DOWN).toNumber()
   })
 
   const theoreticalCostB = computed(() => calcTheoCost(costB.value.givenOdds, costB.value.subGivenOdds))
@@ -65,11 +75,13 @@ export function useOddsCalculator(initialPlay) {
     
     const theoB = calcTheoCost(costB.value.givenOdds, costB.value.subGivenOdds)
     const multiplier = new Decimal(costB.value.additionalProfit || 0).dividedBy(100)
-    const targetProfit = new Decimal(actualProfitA.value).times(new Decimal(1).plus(multiplier))
+    const targetProfit = new Decimal(actualProfitA.value).times(new Decimal(1).plus(multiplier)).toDecimalPlaces(6, Decimal.ROUND_DOWN)
     const newCost = targetProfit.plus(theoB)
     
-    costB.value.cost = newCost.toDecimalPlaces(4).toNumber()
-    costB.value.rebate = new Decimal(100).minus(newCost).toDecimalPlaces(4).toNumber()
+    // 成本 B 盤精度標準化為 3 位，退水採捨去
+    const rebateVal = new Decimal(100).minus(newCost).toDecimalPlaces(3, Decimal.ROUND_DOWN)
+    costB.value.rebate = rebateVal.toNumber()
+    costB.value.cost = new Decimal(100).minus(rebateVal).toNumber()
     
     setTimeout(() => { isSyncingB = false }, 0)
   })
@@ -81,10 +93,15 @@ export function useOddsCalculator(initialPlay) {
 
     // 若使用者動的是【退水】或【成本】，要先互相連動
     if (newRebate !== oldR) {
-      costB.value.cost = new Decimal(100).minus(newRebate).toDecimalPlaces(4).toNumber()
+      // 退水、成本精度統一為 3 位數，退水強制捨去
+      costB.value.rebate = new Decimal(newRebate).toDecimalPlaces(3, Decimal.ROUND_DOWN).toNumber()
+      costB.value.cost = new Decimal(100).minus(costB.value.rebate).toNumber()
       newCost = costB.value.cost
     } else if (newCost !== oldC) {
-      costB.value.rebate = new Decimal(100).minus(newCost).toDecimalPlaces(4).toNumber()
+      // 若動的是成本，則退水由 100 - 成本 並進行捨去
+      const calcRebate = new Decimal(100).minus(newCost).toDecimalPlaces(3, Decimal.ROUND_DOWN)
+      costB.value.rebate = calcRebate.toNumber()
+      costB.value.cost = new Decimal(100).minus(calcRebate).toNumber()
     }
 
     // 重算干預後的真實利潤
@@ -100,49 +117,51 @@ export function useOddsCalculator(initialPlay) {
     }
     // 預防浮點數無限連鎖更新
     if (new Decimal(costB.value.additionalProfit || 0).minus(newAddProfit).abs().greaterThan(0.000001)) {
-      costB.value.additionalProfit = newAddProfit.toDecimalPlaces(6).toNumber()
+      costB.value.additionalProfit = newAddProfit.toDecimalPlaces(6, Decimal.ROUND_DOWN).toNumber()
     }
     
     setTimeout(() => { isSyncingB = false }, 0)
   })
   
   const computedProfitB = computed(() => {
-    return new Decimal(costB.value.cost).minus(theoreticalCostB.value).toDecimalPlaces(4).toNumber()
+    return new Decimal(costB.value.cost).minus(theoreticalCostB.value).toDecimalPlaces(6, Decimal.ROUND_DOWN).toNumber()
   })
 
   // 現金盤 A/B (單向防禦機制)
   const oddsA_TargetProfit = computed(() => {
     const baseP = play.value.oddsA.baseProfit || 0
-    // 利潤基準亦需標準化
-    return new Decimal(baseP).times(100).plus(deltaProfit.value).toDecimalPlaces(4).toNumber()
+    // 利潤基準亦需標準化 (6位捨去)
+    return new Decimal(baseP).times(100).plus(deltaProfit.value).toDecimalPlaces(6, Decimal.ROUND_DOWN).toNumber()
   })
 
   // 賠率 B 盤是以 A 盤為基準，疊加其百分比 (例如 20% 即為 A 盤利潤 * 1.2)
   const oddsB_TargetProfit = computed(() => {
     const multiplier = new Decimal(oddsB.value.additionalProfit || 0).dividedBy(100)
-    return new Decimal(oddsA_TargetProfit.value).times(new Decimal(1).plus(multiplier)).toDecimalPlaces(4).toNumber()
+    return new Decimal(oddsA_TargetProfit.value).times(new Decimal(1).plus(multiplier)).toDecimalPlaces(6, Decimal.ROUND_DOWN).toNumber()
   })
 
   const calcCashOddsFromProfit = (baseDataKey, targetProfit) => {
     const b = play.value.baseData
     const origConfig = play.value[baseDataKey]
     
-    const targetTheoCost = new Decimal(100).minus(targetProfit)
+    const targetTheoCost = new Decimal(100).minus(new Decimal(targetProfit).toDecimalPlaces(6, Decimal.ROUND_DOWN))
     
     let subGiven = origConfig.subGivenOdds
     let theoCostFromSub = new Decimal(0)
     if (subGiven !== null && b.subTheoreticalOdds && b.subTheoreticalOdds > 0) {
-      theoCostFromSub = new Decimal(subGiven).dividedBy(b.subTheoreticalOdds).times(100)
+      // 副獎成本採 Ceil 6
+      theoCostFromSub = new Decimal(subGiven).dividedBy(b.subTheoreticalOdds).times(100).toDecimalPlaces(6, Decimal.ROUND_UP)
     }
     
     let mainGiven = new Decimal(0)
     const remainingTheo = targetTheoCost.minus(theoCostFromSub)
     if (b.theoreticalOdds > 0) {
-      mainGiven = remainingTheo.dividedBy(100).times(b.theoreticalOdds)
+      // 最終給定賠率採 Floor 6
+      mainGiven = remainingTheo.dividedBy(100).times(b.theoreticalOdds).toDecimalPlaces(6, Decimal.ROUND_DOWN)
     }
 
     return {
-      givenOdds: mainGiven.toDecimalPlaces(6).toNumber(),
+      givenOdds: mainGiven.toNumber(),
       subGivenOdds: subGiven,
       profit: targetProfit,
       theoreticalCost: targetTheoCost.toNumber()
@@ -169,8 +188,8 @@ export function useOddsCalculator(initialPlay) {
     
     oddsB.value.additionalProfit = 20
 
-    // 初始化當下，立即擷取引擎端計算出的絕對精準利潤，並標準化為 4 位小數，做為日後 Delta 偏移的基底
-    initialActualProfitA.value = new Decimal(newPlay.costA.baseCost).minus(calcTheoCost(newPlay.costA.givenOdds, newPlay.costA.subGivenOdds)).toDecimalPlaces(4).toNumber()
+    // 初始化當下，立即擷取引擎端計算出的絕對精準利潤，並標準化為 6 位小數無條件捨去
+    initialActualProfitA.value = new Decimal(newPlay.costA.baseCost).minus(calcTheoCost(newPlay.costA.givenOdds, newPlay.costA.subGivenOdds)).toDecimalPlaces(6, Decimal.ROUND_DOWN).toNumber()
 
     nextTick(() => { isSyncingB = false })
   }

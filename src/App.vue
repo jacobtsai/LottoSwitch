@@ -314,7 +314,7 @@ const isNotFoundNumber = computed(() => {
               <div class="data-row box-highlight">
                 <label>反推現金最高賠率</label>
                 <div class="val-col">
-                  <span class="num highlight">{{ fmtNum(computedOddsA.givenOdds) }}</span>
+                  <span class="num highlight" :class="{ 'text-danger': computedOddsA.givenOdds < 0 }">{{ fmtNum(computedOddsA.givenOdds) }}</span>
                   <small class="formula-hint">(100 - 利潤 - 副獎成本) ÷ 100 × 主獎理論賠率</small>
                 </div>
               </div>
@@ -376,7 +376,7 @@ const isNotFoundNumber = computed(() => {
               <div class="data-row box-highlight">
                 <label>反推現金最高賠率</label>
                 <div class="val-col">
-                  <span class="num highlight">{{ fmtNum(computedOddsB.givenOdds) }}</span>
+                  <span class="num highlight" :class="{ 'text-danger': computedOddsB.givenOdds < 0 }">{{ fmtNum(computedOddsB.givenOdds) }}</span>
                   <small class="formula-hint">(100 - 利潤 - 副獎成本) ÷ 100 × 主獎理論賠率</small>
                 </div>
               </div>
@@ -395,14 +395,14 @@ const isNotFoundNumber = computed(() => {
               <label>主獎理論賠率</label>
               <div class="val-col">
                 <span class="num">{{ fmtNum(play?.baseData?.theoreticalOdds, 6) }}</span>
-                <small class="formula-hint">繼承真理基準</small>
+                <small class="formula-hint">繼承原始理論賠率</small>
               </div>
             </div>
             <div class="data-row" v-if="play?.baseData?.subTheoreticalOdds">
               <label>副獎理論賠率</label>
               <div class="val-col">
                 <span class="num">{{ fmtNum(play?.baseData?.subTheoreticalOdds, 6) }}</span>
-                <small class="formula-hint">繼承真理基準</small>
+                <small class="formula-hint">繼承原始理論賠率</small>
               </div>
             </div>
             <div class="data-row highlight-row mt-2">

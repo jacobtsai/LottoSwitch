@@ -137,19 +137,23 @@ const isNotFoundNumber = computed(() => {
           <div class="data-item">
             <label>主獎機率</label>
             <span class="num highlight">{{ fmtPerc(play.baseData.prob) }}</span>
+            <small class="formula-hint mt-1">中獎數 ÷ 總次數</small>
           </div>
           <div class="data-item">
             <label>主獎理論賠率</label>
             <span class="num highlight">{{ fmtNum(play.baseData.theoreticalOdds, 4) }}</span>
+            <small class="formula-hint mt-1">總次數 ÷ 中獎數</small>
           </div>
           <template v-if="play.baseData.subProb">
             <div class="data-item">
               <label>副獎機率</label>
               <span class="num warning">{{ fmtPerc(play.baseData.subProb) }}</span>
+              <small class="formula-hint mt-1">副獎數 ÷ 總次數</small>
             </div>
             <div class="data-item">
               <label>副獎理論賠率</label>
               <span class="num warning">{{ fmtNum(play.baseData.subTheoreticalOdds, 4) }}</span>
+              <small class="formula-hint mt-1">總次數 ÷ 副獎數</small>
             </div>
           </template>
         </div>
@@ -204,17 +208,26 @@ const isNotFoundNumber = computed(() => {
           <div class="result-section flex-grow-end" v-if="!isNotFoundNumber">
             <div class="result-row">
               <label>驅動偏移基準 (Delta)</label>
-              <span class="num highlight">{{ deltaProfit > 0 ? '+' : '' }}{{ fmtNum(deltaProfit, 4) }}%</span>
+              <div class="val-col">
+                <span class="num highlight">{{ deltaProfit > 0 ? '+' : '' }}{{ fmtNum(deltaProfit, 4) }}%</span>
+                <small class="formula-hint">現利潤 - 初始基準</small>
+              </div>
             </div>
             <div class="result-row separator">
               <label>理論成本 (Expected)</label>
-              <span class="num">{{ fmtNum(theoreticalCostA, 6) }}</span>
+              <div class="val-col">
+                <span class="num">{{ fmtNum(theoreticalCostA, 6) }}</span>
+                <small class="formula-hint">Σ(給定賠率÷理論賠率)×100</small>
+              </div>
             </div>
             <div class="result-row highlight-row">
               <label>當前利潤</label>
-              <span class="num" :class="actualProfitA >= 0 ? 'profit-pos' : 'text-danger'">
-                {{ fmtNum(actualProfitA, 4) }}%
-              </span>
+              <div class="val-col">
+                <span class="num" :class="actualProfitA >= 0 ? 'profit-pos' : 'text-danger'">
+                  {{ fmtNum(actualProfitA, 4) }}%
+                </span>
+                <small class="formula-hint">給定成本 - 理論成本</small>
+              </div>
             </div>
           </div>
         </div>
@@ -263,13 +276,19 @@ const isNotFoundNumber = computed(() => {
           <div class="result-section flex-grow-end">
              <div class="data-row separator">
                 <label>目標理論成本</label>
-                <span class="num">{{ fmtNum(theoreticalCostB, 6) }}</span>
+                <div class="val-col">
+                  <span class="num">{{ fmtNum(theoreticalCostB, 6) }}</span>
+                  <small class="formula-hint">Σ(自訂賠率÷理論賠率)×100</small>
+                </div>
               </div>
               <div class="data-row highlight-row">
                  <label>當前利潤</label>
-                 <span class="num" :class="computedProfitB >= 0 ? 'profit-pos' : 'text-danger'">
-                   {{ fmtNum(computedProfitB, 4) }}%
-                 </span>
+                 <div class="val-col">
+                   <span class="num" :class="computedProfitB >= 0 ? 'profit-pos' : 'text-danger'">
+                     {{ fmtNum(computedProfitB, 4) }}%
+                   </span>
+                   <small class="formula-hint">給定成本 - 目標理本</small>
+                 </div>
               </div>
           </div>
         </div>
@@ -288,11 +307,17 @@ const isNotFoundNumber = computed(() => {
             <div class="data-box mb-4">
               <div class="data-row box-highlight">
                 <label>反推現金最高賠率</label>
-                <span class="num highlight">{{ fmtNum(computedOddsA.givenOdds) }}</span>
+                <div class="val-col">
+                  <span class="num highlight">{{ fmtNum(computedOddsA.givenOdds) }}</span>
+                  <small class="formula-hint">(100-現利-副佔)÷100×主論</small>
+                </div>
               </div>
               <div class="data-row" v-if="computedOddsA.subGivenOdds !== null">
                 <label>保留副獎賠率</label>
-                <span class="num warning">{{ fmtNum(computedOddsA.subGivenOdds) }}</span>
+                <div class="val-col">
+                  <span class="num warning">{{ fmtNum(computedOddsA.subGivenOdds) }}</span>
+                  <small class="formula-hint">固定繼承 A 盤</small>
+                </div>
               </div>
             </div>
           </div>
@@ -300,17 +325,26 @@ const isNotFoundNumber = computed(() => {
           <div class="result-section flex-grow-end">
             <div class="data-row separator">
               <label>主獎理論賠率</label>
-              <span class="num">{{ fmtNum(play?.baseData?.theoreticalOdds, 6) }}</span>
+              <div class="val-col">
+                <span class="num">{{ fmtNum(play?.baseData?.theoreticalOdds, 6) }}</span>
+                <small class="formula-hint">繼承真理基準</small>
+              </div>
             </div>
             <div class="data-row" v-if="play?.baseData?.subTheoreticalOdds">
               <label>副獎理論賠率</label>
-              <span class="num">{{ fmtNum(play?.baseData?.subTheoreticalOdds, 6) }}</span>
+              <div class="val-col">
+                <span class="num">{{ fmtNum(play?.baseData?.subTheoreticalOdds, 6) }}</span>
+                <small class="formula-hint">繼承真理基準</small>
+              </div>
             </div>
             <div class="data-row highlight-row mt-2">
               <label>當前利潤</label>
-              <span class="num" :class="computedOddsA.profit >= 0 ? 'profit-pos' : 'text-danger'">
-                {{ fmtNum(computedOddsA.profit, 4) }}%
-              </span>
+              <div class="val-col">
+                <span class="num" :class="computedOddsA.profit >= 0 ? 'profit-pos' : 'text-danger'">
+                  {{ fmtNum(computedOddsA.profit, 4) }}%
+                </span>
+                <small class="formula-hint">A盤原始利潤 + 偏移Δ</small>
+              </div>
             </div>
           </div>
         </div>
@@ -335,11 +369,17 @@ const isNotFoundNumber = computed(() => {
             <div class="data-box mb-4">
               <div class="data-row box-highlight">
                 <label>反推現金最高賠率</label>
-                <span class="num highlight">{{ fmtNum(computedOddsB.givenOdds) }}</span>
+                <div class="val-col">
+                  <span class="num highlight">{{ fmtNum(computedOddsB.givenOdds) }}</span>
+                  <small class="formula-hint">(100-現利-副佔)÷100×主論</small>
+                </div>
               </div>
               <div class="data-row" v-if="computedOddsB.subGivenOdds !== null">
                 <label>保留副獎賠率</label>
-                <span class="num warning">{{ fmtNum(computedOddsB.subGivenOdds) }}</span>
+                <div class="val-col">
+                  <span class="num warning">{{ fmtNum(computedOddsB.subGivenOdds) }}</span>
+                  <small class="formula-hint">固定繼承 A 盤</small>
+                </div>
               </div>
             </div>
           </div>
@@ -347,17 +387,26 @@ const isNotFoundNumber = computed(() => {
           <div class="result-section flex-grow-end">
             <div class="data-row separator">
               <label>主獎理論賠率</label>
-              <span class="num">{{ fmtNum(play?.baseData?.theoreticalOdds, 6) }}</span>
+              <div class="val-col">
+                <span class="num">{{ fmtNum(play?.baseData?.theoreticalOdds, 6) }}</span>
+                <small class="formula-hint">繼承真理基準</small>
+              </div>
             </div>
             <div class="data-row" v-if="play?.baseData?.subTheoreticalOdds">
               <label>副獎理論賠率</label>
-              <span class="num">{{ fmtNum(play?.baseData?.subTheoreticalOdds, 6) }}</span>
+              <div class="val-col">
+                <span class="num">{{ fmtNum(play?.baseData?.subTheoreticalOdds, 6) }}</span>
+                <small class="formula-hint">繼承真理基準</small>
+              </div>
             </div>
             <div class="data-row highlight-row mt-2">
               <label>當前利潤</label>
-              <span class="num" :class="computedOddsB.profit >= 0 ? 'profit-pos' : 'text-danger'">
-                {{ fmtNum(computedOddsB.profit, 4) }}%
-              </span>
+              <div class="val-col">
+                <span class="num" :class="computedOddsB.profit >= 0 ? 'profit-pos' : 'text-danger'">
+                  {{ fmtNum(computedOddsB.profit, 4) }}%
+                </span>
+                <small class="formula-hint">賠率A現利 × (1+疊加%)</small>
+              </div>
             </div>
           </div>
         </div>
@@ -538,6 +587,23 @@ const isNotFoundNumber = computed(() => {
   color: var(--text-secondary);
   margin-top: 0.5rem;
   height: 2.4rem;
+}
+
+.val-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.formula-hint {
+  display: block;
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.4);
+  line-height: 1.2;
+  font-family: 'Roboto Mono', monospace;
+  letter-spacing: 0.3px;
+  font-weight: normal;
+  margin-top: 2px;
 }
 
 .master-panel {

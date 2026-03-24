@@ -44,12 +44,13 @@ export function useOddsCalculator(initialPlay) {
 
   const theoreticalCostA = computed(() => calcTheoCost(costA.value.givenOdds, costA.value.subGivenOdds))
   const actualProfitA = computed(() => {
-    return new Decimal(costA.value.cost).minus(theoreticalCostA.value).toNumber()
+    if (!theoreticalCostA.value) return 0
+    return new Decimal(costA.value.cost).minus(theoreticalCostA.value).toDecimalPlaces(4).toNumber()
   })
   
   // Delta (偏移基準) 現在嚴格對齊「引擎初始化時算出的數學真值」，消除與 CSV 字串的四捨五入誤差
   const deltaProfit = computed(() => {
-    return new Decimal(actualProfitA.value).minus(initialActualProfitA.value).toNumber()
+    return new Decimal(actualProfitA.value).minus(initialActualProfitA.value).toDecimalPlaces(4).toNumber()
   })
 
   const theoreticalCostB = computed(() => calcTheoCost(costB.value.givenOdds, costB.value.subGivenOdds))
@@ -106,19 +107,20 @@ export function useOddsCalculator(initialPlay) {
   })
   
   const computedProfitB = computed(() => {
-    return new Decimal(costB.value.cost).minus(theoreticalCostB.value).toNumber()
+    return new Decimal(costB.value.cost).minus(theoreticalCostB.value).toDecimalPlaces(4).toNumber()
   })
 
   // 現金盤 A/B (單向防禦機制)
   const oddsA_TargetProfit = computed(() => {
     const baseP = play.value.oddsA.baseProfit || 0
-    return new Decimal(baseP).times(100).plus(deltaProfit.value).toNumber()
+    // 利潤基準亦需標準化
+    return new Decimal(baseP).times(100).plus(deltaProfit.value).toDecimalPlaces(4).toNumber()
   })
 
   // 賠率 B 盤是以 A 盤為基準，疊加其百分比 (例如 20% 即為 A 盤利潤 * 1.2)
   const oddsB_TargetProfit = computed(() => {
     const multiplier = new Decimal(oddsB.value.additionalProfit || 0).dividedBy(100)
-    return new Decimal(oddsA_TargetProfit.value).times(new Decimal(1).plus(multiplier)).toNumber()
+    return new Decimal(oddsA_TargetProfit.value).times(new Decimal(1).plus(multiplier)).toDecimalPlaces(4).toNumber()
   })
 
   const calcCashOddsFromProfit = (baseDataKey, targetProfit) => {
@@ -167,8 +169,8 @@ export function useOddsCalculator(initialPlay) {
     
     oddsB.value.additionalProfit = 20
 
-    // 初始化當下，立即擷取引擎端計算出的絕對精準利潤，做為日後 Delta 偏移的基底
-    initialActualProfitA.value = new Decimal(newPlay.costA.baseCost).minus(calcTheoCost(newPlay.costA.givenOdds, newPlay.costA.subGivenOdds)).toNumber()
+    // 初始化當下，立即擷取引擎端計算出的絕對精準利潤，並標準化為 4 位小數，做為日後 Delta 偏移的基底
+    initialActualProfitA.value = new Decimal(newPlay.costA.baseCost).minus(calcTheoCost(newPlay.costA.givenOdds, newPlay.costA.subGivenOdds)).toDecimalPlaces(4).toNumber()
 
     nextTick(() => { isSyncingB = false })
   }

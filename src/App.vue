@@ -117,7 +117,13 @@ const isNotFoundNumber = computed(() => {
     <main class="main-content">
       <!-- (號碼輸入區已移至成本 A 盤內) -->
 
-      <section class="base-data glass-panel" v-if="play && !isNotFoundNumber">
+      <div v-if="!selectedPlayValue" class="empty-state glass-panel" style="text-align: center; padding: 6rem 2rem; color: var(--text-secondary);">
+        <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">📊</div>
+        <h2 style="font-size: 1.5rem; margin-bottom: 0.75rem; color: var(--text-primary);">請先於右上方選擇分類與對應玩法</h2>
+        <p>系統將根據您的選擇，即時載入原始數學模型與四盤連動配置。</p>
+      </div>
+
+      <section class="base-data glass-panel" v-if="selectedPlayValue && play && !isNotFoundNumber">
         <h2 class="section-title">原始邏輯數值 (Zero-sum Base) - [{{ play.category }}] {{ play.playType }}</h2>
         <div class="data-grid">
           <div class="data-item">
@@ -159,7 +165,7 @@ const isNotFoundNumber = computed(() => {
         </div>
       </section>
 
-      <section class="markets-grid" v-if="play">
+      <section class="markets-grid" v-if="selectedPlayValue && play">
         <!-- ================= COST A (MASTER) ================= -->
         <div class="market-panel glass-panel master-panel">
           <div class="panel-header">

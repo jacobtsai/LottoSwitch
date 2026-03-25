@@ -9,6 +9,11 @@ const GAMES = [
 ];
 
 const BASE_URL = 'https://docs.google.com/spreadsheets/d/1qrJz52TB55rNj0Rc1hqZRPUq6nINb68P2TjKozdt0mQ/export?format=csv&gid=';
+const parseSafeInt = (val) => {
+  if (!val || typeof val !== 'string') return 0;
+  const parsed = parseInt(val.replace(/,/g, ''), 10);
+  return isNaN(parsed) ? 0 : parsed;
+};
 
 const parseSafeFloat = (val) => {
   if (!val || typeof val !== 'string') return null;
@@ -40,23 +45,28 @@ export async function fetchAllGameData() {
       const rawCat = row[1]?.trim();
       if (rawCat) currentCategory = rawCat;
       
-      const totalCount = parseInt(row[3]?.replace(/,/g, '') || '0', 10);
-      const winCount = parseInt(row[4]?.replace(/,/g, '') || '0', 10);
-      const subWinCount = row[7] ? parseInt(row[7].replace(/,/g, '')) : null;
+      const totalCount = parseSafeInt(row[3]);
+      const drawCount = parseSafeInt(row[10]) || 0; // 和局次數 (Index 10 / Column K)
+      const effectiveTotal = totalCount - drawCount; // 計算理論值的基準母數
+      
+      const winCount = parseSafeInt(row[4]);
+      const subWinCount = row[7] ? parseSafeInt(row[7]) : null;
 
       return {
         category: currentCategory,
         playType: row[2]?.trim() || '',
         baseData: {
           totalCount,
+          drawCount,
           winCount,
-          prob: totalCount > 0 ? (winCount / totalCount) : (parseSafePercent(row[5]) || 0),
-          // 理論賠率採 6 位捨去
-          theoreticalOdds: new Decimal(parseSafeFloat(row[6]) || 0).toDecimalPlaces(6, Decimal.ROUND_DOWN).toNumber(),
+          // 機率與理論賠率：必須排除和局後的有效總次數作為母數
+          prob: effectiveTotal > 0 ? (winCount / effectiveTotal) : (parseSafePercent(row[5]) || 0),
+          // 理論賠率直接由系統計算：總次數 ÷ 主獎次數，並採 6 位捨去，避免 Excel 儲存格格式造成的精度流失
+          theoreticalOdds: (winCount > 0 && effectiveTotal > 0) ? new Decimal(effectiveTotal).dividedBy(winCount).toDecimalPlaces(6, Decimal.ROUND_DOWN).toNumber() : 0,
           subWinCount,
-          subProb: (totalCount > 0 && subWinCount !== null) ? (subWinCount / totalCount) : parseSafePercent(row[8]),
-          // 副獎理論賠率亦採 6 位捨去
-          subTheoreticalOdds: row[9] ? new Decimal(parseSafeFloat(row[9])).toDecimalPlaces(6, Decimal.ROUND_DOWN).toNumber() : null
+          subProb: (effectiveTotal > 0 && subWinCount !== null) ? (subWinCount / effectiveTotal) : parseSafePercent(row[8]),
+          // 副獎理論賠率：總次數 ÷ 副獎次數，採 6 位捨去
+          subTheoreticalOdds: (subWinCount && subWinCount > 0 && effectiveTotal > 0) ? new Decimal(effectiveTotal).dividedBy(subWinCount).toDecimalPlaces(6, Decimal.ROUND_DOWN).toNumber() : null
         },
         costA: {
           givenOdds: parseSafeFloat(row[21]) || 0,

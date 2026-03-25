@@ -4,6 +4,7 @@ import { fetchAllGameData } from './services/excelService'
 import { useOddsCalculator } from './composables/useOddsCalculator'
 import Multiselect from '@vueform/multiselect'
 import '@vueform/multiselect/themes/default.css'
+import Decimal from 'decimal.js'
 
 const allData = ref({})
 const isLoading = ref(true)
@@ -113,6 +114,7 @@ watch(manualNumberInput, (newNum) => {
 
 // UI Helpers
 const fmtNum = (val, decimals = 2) => val !== null && val !== undefined && !isNaN(val) ? Number(val).toFixed(decimals) : '-'
+const fmtFloor = (val, decimals = 6) => val !== null && val !== undefined && !isNaN(val) ? new Decimal(val).toDecimalPlaces(decimals, Decimal.ROUND_DOWN).toFixed(decimals) : '-'
 const fmtPerc = (val) => val !== null && val !== undefined && !isNaN(val) ? (val * 100).toFixed(4) + '%' : '-'
 
 const fmtOdds = (val) => {
@@ -207,26 +209,32 @@ const isNotFoundNumber = computed(() => {
               <span class="num">{{ play?.baseData?.subWinCount?.toLocaleString() || '-' }}</span>
             </div>
           </template>
+          <template v-if="play?.baseData?.drawCount">
+            <div class="data-item">
+              <label>和局次數 (Draw)</label>
+              <span class="num warning">{{ play?.baseData?.drawCount?.toLocaleString() || '-' }}</span>
+            </div>
+          </template>
           <div class="data-item">
             <label>主獎機率</label>
             <span class="num highlight">{{ fmtPerc(play.baseData.prob) }}</span>
-            <small class="formula-hint mt-1">中獎數 ÷ 總次數</small>
+            <small class="formula-hint mt-1">中獎數 ÷ (總次數 - 和局)</small>
           </div>
           <div class="data-item">
             <label>主獎理論賠率</label>
-            <span class="num highlight">{{ fmtNum(play.baseData.theoreticalOdds, 4) }}</span>
-            <small class="formula-hint mt-1">總次數 ÷ 中獎數</small>
+            <span class="num highlight">{{ fmtFloor(play.baseData.theoreticalOdds, 6) }}</span>
+            <small class="formula-hint mt-1">(總次數 - 和局) ÷ 中獎數</small>
           </div>
           <template v-if="play.baseData.subProb">
             <div class="data-item">
               <label>副獎機率</label>
               <span class="num warning">{{ fmtPerc(play.baseData.subProb) }}</span>
-              <small class="formula-hint mt-1">副獎數 ÷ 總次數</small>
+              <small class="formula-hint mt-1">副獎數 ÷ (總次數 - 和局)</small>
             </div>
             <div class="data-item">
               <label>副獎理論賠率</label>
-              <span class="num warning">{{ fmtNum(play.baseData.subTheoreticalOdds, 4) }}</span>
-              <small class="formula-hint mt-1">總次數 ÷ 副獎數</small>
+              <span class="num warning">{{ fmtFloor(play.baseData.subTheoreticalOdds, 6) }}</span>
+              <small class="formula-hint mt-1">(總次數 - 和局) ÷ 副獎數</small>
             </div>
           </template>
         </div>

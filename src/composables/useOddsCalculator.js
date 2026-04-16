@@ -86,10 +86,14 @@ export function useOddsCalculator(initialPlay) {
     setTimeout(() => { isSyncingB = false }, 0)
   })
 
-  // 2. 使用者手動干預 B 盤參數 (賠率 / 退水 / 成本)：打破利潤鎖定，允許當前利潤產生變化，並反推「利潤疊加」來吸收差異
+  // 2. 使用者手動干預 B 盤參數 (賠率 / 退水 / 成本)：
+  // 情況 a: 動了【退水 / 成本】，則維持當下的「疊加設定」鎖死，反向算出新的「自訂賠率」
+  // 情況 b: 動了【賠率】，則允許當前利潤產生變化，並反推「疊加設定」百分比來吸收差異
   watch([() => costB.value.givenOdds, () => costB.value.subGivenOdds, () => costB.value.rebate, () => costB.value.cost], ([newOdds, newSubOdds, newRebate, newCost], [oldOdds, oldSubOdds, oldR, oldC]) => {
     if (isSyncingB) return
     isSyncingB = true
+
+    let isCostOrRebateChanged = false
 
     // 若使用者動的是【退水】或【成本】，要先互相連動
     if (newRebate !== oldR) {
@@ -97,27 +101,51 @@ export function useOddsCalculator(initialPlay) {
       costB.value.rebate = new Decimal(newRebate).toDecimalPlaces(3, Decimal.ROUND_DOWN).toNumber()
       costB.value.cost = new Decimal(100).minus(costB.value.rebate).toNumber()
       newCost = costB.value.cost
+      isCostOrRebateChanged = true
     } else if (newCost !== oldC) {
       // 若動的是成本，則退水由 100 - 成本 並進行捨去
       const calcRebate = new Decimal(100).minus(newCost).toDecimalPlaces(3, Decimal.ROUND_DOWN)
       costB.value.rebate = calcRebate.toNumber()
       costB.value.cost = new Decimal(100).minus(calcRebate).toNumber()
+      isCostOrRebateChanged = true
     }
 
-    // 重算干預後的真實利潤
-    const theoB = calcTheoCost(costB.value.givenOdds, costB.value.subGivenOdds)
-    const currentActualProfitB = new Decimal(newCost).minus(theoB)
-    
-    // 反向倒推出這個操作製造了多少利潤百分比，寫入 additionalProfit 吸收
-    let newAddProfit = new Decimal(0)
-    if (actualProfitA.value !== 0) {
-      newAddProfit = currentActualProfitB.dividedBy(actualProfitA.value).minus(1).times(100)
+    if (isCostOrRebateChanged) {
+      // 維持當前的 additionalProfit，反推算出新的 costB.givenOdds
+      const multiplier = new Decimal(costB.value.additionalProfit || 0).dividedBy(100)
+      const targetProfit = new Decimal(actualProfitA.value).times(new Decimal(1).plus(multiplier)).toDecimalPlaces(4, Decimal.ROUND_DOWN)
+      
+      const targetTheoCost = new Decimal(newCost).minus(targetProfit)
+      
+      const b = play.value.baseData
+      let subGiven = costB.value.subGivenOdds
+      let theoCostFromSub = new Decimal(0)
+      if (subGiven !== null && b.subTheoreticalOdds && b.subTheoreticalOdds > 0) {
+        theoCostFromSub = new Decimal(subGiven).dividedBy(b.subTheoreticalOdds).times(100).toDecimalPlaces(6, Decimal.ROUND_UP)
+      }
+      
+      const remainingTheo = targetTheoCost.minus(theoCostFromSub)
+      if (b.theoreticalOdds > 0) {
+        // 自訂賠率 (主獎) 取 Floor 6
+        const mainGiven = remainingTheo.dividedBy(100).times(b.theoreticalOdds).toDecimalPlaces(6, Decimal.ROUND_DOWN)
+        costB.value.givenOdds = mainGiven.toNumber()
+      }
     } else {
-      newAddProfit = new Decimal(costB.value.additionalProfit || 0)
-    }
-    // 預防浮點數無限連鎖更新
-    if (new Decimal(costB.value.additionalProfit || 0).minus(newAddProfit).abs().greaterThan(0.000001)) {
-      costB.value.additionalProfit = newAddProfit.toDecimalPlaces(4, Decimal.ROUND_DOWN).toNumber()
+      // 重算干預賠率後的真實利潤
+      const theoB = calcTheoCost(costB.value.givenOdds, costB.value.subGivenOdds)
+      const currentActualProfitB = new Decimal(newCost).minus(theoB)
+      
+      // 反向倒推出這個操作製造了多少利潤百分比，寫入 additionalProfit 吸收
+      let newAddProfit = new Decimal(0)
+      if (actualProfitA.value !== 0) {
+        newAddProfit = currentActualProfitB.dividedBy(actualProfitA.value).minus(1).times(100)
+      } else {
+        newAddProfit = new Decimal(costB.value.additionalProfit || 0)
+      }
+      // 預防浮點數無限連鎖更新
+      if (new Decimal(costB.value.additionalProfit || 0).minus(newAddProfit).abs().greaterThan(0.000001)) {
+        costB.value.additionalProfit = newAddProfit.toDecimalPlaces(4, Decimal.ROUND_DOWN).toNumber()
+      }
     }
     
     setTimeout(() => { isSyncingB = false }, 0)

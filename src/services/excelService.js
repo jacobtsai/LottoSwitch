@@ -59,14 +59,12 @@ export async function fetchAllGameData() {
           totalCount,
           drawCount,
           winCount,
-          // 機率與理論賠率：必須排除和局後的有效總次數作為母數
-          prob: effectiveTotal > 0 ? (winCount / effectiveTotal) : (parseSafePercent(row[5]) || 0),
-          // 理論賠率直接由系統計算：總次數 ÷ 主獎次數，並採 6 位捨去，避免 Excel 儲存格格式造成的精度流失
-          theoreticalOdds: (winCount > 0 && effectiveTotal > 0) ? new Decimal(effectiveTotal).dividedBy(winCount).toDecimalPlaces(6, Decimal.ROUND_DOWN).toNumber() : 0,
+          // 機率與理論賠率：改回以 Excel 表數據為主，由系統讀取特定欄位
+          prob: parseSafePercent(row[5]) || 0,
+          theoreticalOdds: new Decimal(parseSafeFloat(row[6]) || 0).toDecimalPlaces(6, Decimal.ROUND_DOWN).toNumber(),
           subWinCount,
-          subProb: (effectiveTotal > 0 && subWinCount !== null) ? (subWinCount / effectiveTotal) : parseSafePercent(row[8]),
-          // 副獎理論賠率：總次數 ÷ 副獎次數，採 6 位捨去
-          subTheoreticalOdds: (subWinCount && subWinCount > 0 && effectiveTotal > 0) ? new Decimal(effectiveTotal).dividedBy(subWinCount).toDecimalPlaces(6, Decimal.ROUND_DOWN).toNumber() : null
+          subProb: parseSafePercent(row[8]) || 0,
+          subTheoreticalOdds: row[9] ? new Decimal(parseSafeFloat(row[9])).toDecimalPlaces(6, Decimal.ROUND_DOWN).toNumber() : null
         },
         costA: {
           givenOdds: parseSafeFloat(row[21]) || 0,

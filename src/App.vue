@@ -218,23 +218,23 @@ const isNotFoundNumber = computed(() => {
           <div class="data-item">
             <label>主獎機率</label>
             <span class="num highlight">{{ fmtPerc(play.baseData.prob) }}</span>
-            <small class="formula-hint mt-1">中獎數 ÷ (總次數 - 和局)</small>
+            <small class="formula-hint mt-1">Excel 原始機率數據</small>
           </div>
           <div class="data-item">
             <label>主獎理論賠率</label>
             <span class="num highlight">{{ fmtFloor(play.baseData.theoreticalOdds, 6) }}</span>
-            <small class="formula-hint mt-1">(總次數 - 和局) ÷ 中獎數</small>
+            <small class="formula-hint mt-1">Excel 原始理論賠率</small>
           </div>
           <template v-if="play.baseData.subProb">
             <div class="data-item">
               <label>副獎機率</label>
               <span class="num warning">{{ fmtPerc(play.baseData.subProb) }}</span>
-              <small class="formula-hint mt-1">副獎數 ÷ (總次數 - 和局)</small>
+              <small class="formula-hint mt-1">Excel 原始副獎機率</small>
             </div>
             <div class="data-item">
               <label>副獎理論賠率</label>
               <span class="num warning">{{ fmtFloor(play.baseData.subTheoreticalOdds, 6) }}</span>
-              <small class="formula-hint mt-1">(總次數 - 和局) ÷ 副獎數</small>
+              <small class="formula-hint mt-1">Excel 原始副獎理論賠率</small>
             </div>
           </template>
         </div>
